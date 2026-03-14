@@ -1,0 +1,725 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* ══════════════════════════════════════════════════════════════
+     Ward Member Decision Support Dashboard
+     ══════════════════════════════════════════════════════════════ */
+    :root {
+        --ds-blue: #4361ee;
+        --ds-purple: #7209b7;
+        --ds-green: #06d6a0;
+        --ds-amber: #f77f00;
+        --ds-red: #ef233c;
+        --ds-glass: rgba(255, 255, 255, .88);
+        --ds-shadow: 0 12px 40px rgba(67, 97, 238, .10);
+    }
+
+    body {
+        background: linear-gradient(135deg, #eef0ff 0%, #f9f5ff 50%, #fffbf0 100%);
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────────── */
+    .ds-hero {
+        background: linear-gradient(135deg, var(--ds-blue), var(--ds-purple));
+        border-radius: 20px;
+        padding: 2rem 2.5rem;
+        color: #fff;
+        margin-bottom: 1.75rem;
+        box-shadow: 0 12px 40px rgba(67, 97, 238, .3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ds-hero::before {
+        content: '';
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .07);
+    }
+
+    .ds-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -80px;
+        right: 80px;
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .04);
+    }
+
+    .ds-hero h2 {
+        font-size: 1.55rem;
+        font-weight: 800;
+        margin-bottom: .25rem;
+    }
+
+    .ds-hero p {
+        opacity: .75;
+        font-size: .88rem;
+        margin: 0;
+    }
+
+    /* ── Export button in hero ────────────────────────────────────── */
+    .btn-export {
+        background: rgba(255, 255, 255, .18);
+        border: 1.5px solid rgba(255, 255, 255, .5);
+        color: #fff;
+        border-radius: 10px;
+        padding: .5rem 1.25rem;
+        font-weight: 600;
+        font-size: .82rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        transition: background .2s;
+    }
+
+    .btn-export:hover {
+        background: rgba(255, 255, 255, .28);
+        color: #fff;
+    }
+
+    /* ── KPI Tiles ────────────────────────────────────────────────── */
+    .kpi-tile {
+        background: var(--ds-glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, .7);
+        border-radius: 18px;
+        box-shadow: var(--ds-shadow);
+        padding: 1.4rem 1.6rem;
+        transition: transform .2s, box-shadow .2s;
+        height: 100%;
+    }
+
+    .kpi-tile:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, .10);
+    }
+
+    .kpi-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: .85rem;
+    }
+
+    .kpi-value {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: .1rem;
+    }
+
+    .kpi-label {
+        font-size: .72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #6c757d;
+    }
+
+    .kpi-sub {
+        font-size: .78rem;
+        color: #6c757d;
+        margin-top: .3rem;
+    }
+
+    /* ── Section Cards ────────────────────────────────────────────── */
+    .ds-card {
+        background: var(--ds-glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, .7);
+        border-radius: 18px;
+        box-shadow: var(--ds-shadow);
+        padding: 1.6rem;
+    }
+
+    .ds-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.1rem;
+    }
+
+    .ds-card-title {
+        font-weight: 700;
+        font-size: .95rem;
+        color: #212529;
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin: 0;
+    }
+
+    .ds-card-title i {
+        font-size: 1.05rem;
+    }
+
+    /* ── Resolution Progress Bar ──────────────────────────────────── */
+    .res-bar-stack {
+        height: 14px;
+        border-radius: 7px;
+        overflow: hidden;
+        background: #e9ecef;
+        margin: .5rem 0;
+    }
+
+    .res-bar-fill {
+        height: 100%;
+        border-radius: 7px;
+        background: linear-gradient(90deg, #06d6a0, #4361ee);
+        transition: width 1s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    /* ── Hotspot bars ─────────────────────────────────────────────── */
+    .hotspot-row {
+        margin-bottom: .75rem;
+    }
+
+    .hotspot-label {
+        font-size: .8rem;
+        font-weight: 600;
+        color: #343a40;
+        margin-bottom: .25rem;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .hotspot-bar-track {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+
+    .hotspot-bar-fill {
+        height: 100%;
+        border-radius: 5px;
+        background: linear-gradient(90deg, var(--ds-red), var(--ds-amber));
+        transition: width .8s ease;
+    }
+
+    /* ── Priority Alert ───────────────────────────────────────────── */
+    .alert-item {
+        border-left: 4px solid var(--ds-red);
+        border-radius: 0 10px 10px 0;
+        background: #fff9f9;
+        padding: .65rem 1rem;
+        margin-bottom: .6rem;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .alert-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .alert-dot {
+        width: 10px;
+        height: 10px;
+        min-width: 10px;
+        border-radius: 50%;
+        background: var(--ds-red);
+        animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.5);
+            opacity: .6;
+        }
+    }
+
+    /* ── Meeting Card ─────────────────────────────────────────────── */
+    .meeting-item {
+        border-radius: 12px;
+        border: 1px solid #e8eeff;
+        background: #f5f7ff;
+        padding: .75rem 1rem;
+        margin-bottom: .6rem;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .meeting-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .meeting-date-badge {
+        min-width: 46px;
+        height: 46px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--ds-blue), var(--ds-purple));
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: .65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        line-height: 1.2;
+    }
+
+    .meeting-date-badge .day {
+        font-size: 1.1rem;
+        font-weight: 800;
+    }
+
+    /* ── Status breakdown table ───────────────────────────────────── */
+    .status-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .4rem 0;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: .84rem;
+    }
+
+    .status-row:last-child {
+        border: none;
+    }
+
+    /* ── Quick Actions ────────────────────────────────────────────── */
+    .quick-action {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: .65rem .9rem;
+        border-radius: 10px;
+        border: 1.5px solid #e0e4ff;
+        background: #fff;
+        text-decoration: none;
+        color: #343a40;
+        font-size: .84rem;
+        font-weight: 600;
+        transition: all .2s;
+        margin-bottom: .5rem;
+    }
+
+    .quick-action:hover {
+        background: #4361ee;
+        color: #fff;
+        border-color: #4361ee;
+    }
+
+    .quick-action:last-child {
+        margin-bottom: 0;
+    }
+
+    .quick-action i {
+        font-size: 1rem;
+        width: 20px;
+        text-align: center;
+    }
+
+    /* ── Star rating display ──────────────────────────────────────── */
+    .star-display {
+        color: #ffc107;
+        font-size: 1rem;
+    }
+
+    /* ── Animations ──────────────────────────────────────────────── */
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .kpi-tile,
+    .ds-card {
+        animation: fadeUp .4s ease both;
+    }
+
+    .row>*:nth-child(1) .kpi-tile,
+    .row>*:nth-child(1) .ds-card {
+        animation-delay: .05s;
+    }
+
+    .row>*:nth-child(2) .kpi-tile,
+    .row>*:nth-child(2) .ds-card {
+        animation-delay: .10s;
+    }
+
+    .row>*:nth-child(3) .kpi-tile,
+    .row>*:nth-child(3) .ds-card {
+        animation-delay: .15s;
+    }
+
+    .row>*:nth-child(4) .kpi-tile,
+    .row>*:nth-child(4) .ds-card {
+        animation-delay: .20s;
+    }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  HERO HEADER                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="ds-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="bi bi-speedometer2 me-2"></i>Decision Support Dashboard</h2>
+            <p>{{ ward_name }} &nbsp;·&nbsp; Real-time aggregated ward analytics</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'ward_performance_report' %}" class="btn-export">
+                <i class="bi bi-file-earmark-bar-graph-fill"></i> Generate Performance Report
+            </a>
+            <a href="{% url 'schedule_meeting' %}" class="btn-export">
+                <i class="bi bi-calendar-plus"></i> Schedule Meeting
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  KPI TILES — ROW 1                                             -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="row g-3 mb-3">
+
+    <!-- Total Complaints -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-tile">
+            <div class="kpi-icon" style="background:#e8eeff;">
+                <i class="bi bi-inbox-fill" style="color:var(--ds-blue);"></i>
+            </div>
+            <div class="kpi-value" style="color:var(--ds-blue);">{{ total }}</div>
+            <div class="kpi-label">Total Complaints</div>
+            <div class="kpi-sub">{{ duplicate_count }} flagged duplicate</div>
+        </div>
+    </div>
+
+    <!-- Resolution Rate -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-tile">
+            <div class="kpi-icon" style="background:#d1fae5;">
+                <i class="bi bi-graph-up-arrow" style="color:#06d6a0;"></i>
+            </div>
+            <div class="kpi-value" style="color:#06d6a0;">{{ resolution_rate }}%</div>
+            <div class="kpi-label">Resolution Rate</div>
+            <div class="kpi-sub">{{ resolved }} of {{ total }} resolved</div>
+        </div>
+    </div>
+
+    <!-- Satisfaction Index -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-tile">
+            <div class="kpi-icon" style="background:#fff3cd;">
+                <i class="bi bi-star-fill" style="color:#f77f00;"></i>
+            </div>
+            <div class="kpi-value" style="color:#f77f00;">
+                {{ satisfaction_index|default:"—" }}
+                <span style="font-size:.95rem;">/5</span>
+            </div>
+            <div class="kpi-label">Satisfaction Index</div>
+            <div class="kpi-sub star-display">
+                {% for i in "12345" %}
+                {% if satisfaction_index >= forloop.counter %}
+                <i class="bi bi-star-fill"></i>
+                {% elif satisfaction_index >= forloop.counter|add:"-0.5" %}
+                <i class="bi bi-star-half"></i>
+                {% else %}
+                <i class="bi bi-star" style="color:#ced4da;"></i>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Citizens -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-tile">
+            <div class="kpi-icon" style="background:#f3e8ff;">
+                <i class="bi bi-people-fill" style="color:var(--ds-purple);"></i>
+            </div>
+            <div class="kpi-value" style="color:var(--ds-purple);">{{ total_citizens }}</div>
+            <div class="kpi-label">Ward Citizens</div>
+            <div class="kpi-sub">Registered on platform</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  ROW 2 — RESOLUTION PROGRESS + HOTSPOTS                        -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="row g-3 mb-3">
+
+    <!-- Resolution Efficiency Card -->
+    <div class="col-lg-6">
+        <div class="ds-card h-100">
+            <div class="ds-card-header">
+                <p class="ds-card-title">
+                    <i class="bi bi-bar-chart-line-fill" style="color:var(--ds-green);"></i>
+                    Resolution Efficiency
+                </p>
+                <span class="badge rounded-pill text-bg-{{ resolution_color }} fw-semibold" style="font-size:.72rem;">
+                    {{ resolution_rate }}%
+                </span>
+            </div>
+
+            <!-- Big progress bar -->
+            <div class="res-bar-stack">
+                <div class="res-bar-fill" style="width:{{ resolution_rate }}%;"></div>
+            </div>
+            <div class="d-flex justify-content-between" style="font-size:.72rem; color:#6c757d; margin-bottom:1.25rem;">
+                <span>0%</span><span>Target 70%</span><span>100%</span>
+            </div>
+
+            <!-- Status breakdown -->
+            <div class="status-row">
+                <span><span class="badge bg-secondary me-1">Pending</span> Awaiting action</span>
+                <strong>{{ pending }}</strong>
+            </div>
+            <div class="status-row">
+                <span><span class="badge bg-primary me-1">Assigned</span> With field worker</span>
+                <strong>{{ assigned }}</strong>
+            </div>
+            <div class="status-row">
+                <span><span class="badge bg-info me-1">In Progress</span> Being resolved</span>
+                <strong>{{ in_progress }}</strong>
+            </div>
+            <div class="status-row">
+                <span><span class="badge bg-success me-1">Resolved</span> Completed</span>
+                <strong>{{ resolved }}</strong>
+            </div>
+            <div class="status-row">
+                <span><span class="badge bg-danger me-1">Rejected</span> Not actionable</span>
+                <strong>{{ rejected }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hotspot Detection Card -->
+    <div class="col-lg-6">
+        <div class="ds-card h-100">
+            <div class="ds-card-header">
+                <p class="ds-card-title">
+                    <i class="bi bi-fire" style="color:var(--ds-red);"></i>
+                    Complaint Hotspots
+                </p>
+                <span style="font-size:.72rem; color:#6c757d;">Top pending categories</span>
+            </div>
+
+            {% if hotspots %}
+            {% for h in hotspots %}
+            <div class="hotspot-row">
+                <div class="hotspot-label">
+                    <span>
+                        {% if h.category == 'Water' %}💧
+                        {% elif h.category == 'Electricity' %}⚡
+                        {% elif h.category == 'Roads' %}🛣
+                        {% elif h.category == 'Sanitation' %}🗑
+                        {% elif h.category == 'Trees' %}🌳
+                        {% elif h.category == 'Construction' %}🏗
+                        {% else %}📋{% endif %}
+                        {{ h.category }}
+                    </span>
+                    <span class="badge" style="background:#fff0f0; color:var(--ds-red);">{{ h.count }} pending</span>
+                </div>
+                <div class="hotspot-bar-track">
+                    <div class="hotspot-bar-fill" style="width:{% widthratio h.count hotspot_max 100 %}%;"></div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-emoji-smile d-block mb-2" style="font-size:2rem;"></i>
+                No pending complaints in any category — great work!
+            </div>
+            {% endif %}
+
+            <!-- Satisfaction progress -->
+            <hr class="my-3">
+            <div class="ds-card-header" style="margin-bottom:.6rem;">
+                <p class="ds-card-title" style="font-size:.85rem;">
+                    <i class="bi bi-emoji-smile-fill" style="color:var(--ds-amber);"></i>
+                    Citizen Satisfaction
+                </p>
+                <span class="badge rounded-pill text-bg-{{ satisfaction_color }} fw-semibold" style="font-size:.7rem;">
+                    {{ satisfaction_index }}/5
+                </span>
+            </div>
+            <div class="progress" style="height:10px; border-radius:5px;">
+                <div class="progress-bar bg-{{ satisfaction_color }}" role="progressbar"
+                    style="width:{{ satisfaction_pct }}%; transition:width 1s ease;"
+                    aria-valuenow="{{ satisfaction_pct }}" aria-valuemin="0" aria-valuemax="100">
+                </div>
+            </div>
+            <div style="font-size:.72rem; color:#6c757d; margin-top:.3rem;">
+                Based on citizen ratings for resolved complaints
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  ROW 3 — PRIORITY ALERTS + MEETINGS + QUICK ACTIONS            -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="row g-3">
+
+    <!-- Priority Alerts -->
+    <div class="col-lg-5">
+        <div class="ds-card h-100">
+            <div class="ds-card-header">
+                <p class="ds-card-title">
+                    <i class="bi bi-exclamation-triangle-fill" style="color:var(--ds-red);"></i>
+                    Priority Alerts
+                    {% if priority_alert_count > 0 %}
+                    <span class="badge rounded-pill"
+                        style="background:var(--ds-red); font-size:.68rem; margin-left:.25rem;">
+                        {{ priority_alert_count }}
+                    </span>
+                    {% endif %}
+                </p>
+                <a href="{% url 'complaint_list' %}"
+                    style="font-size:.75rem; color:var(--ds-blue); text-decoration:none; font-weight:600;">
+                    View All →
+                </a>
+            </div>
+
+            {% if priority_alerts %}
+            {% for c in priority_alerts %}
+            <div class="alert-item">
+                <div class="alert-dot"></div>
+                <div style="flex:1; min-width:0;">
+                    <div
+                        style="font-weight:600; font-size:.84rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        {{ c.title }}
+                    </div>
+                    <div style="font-size:.73rem; color:#6c757d;">
+                        {% if c.category %}{{ c.category }} · {% endif %}
+                        {{ c.created_at|timesince }} ago · {{ c.get_status_display }}
+                    </div>
+                </div>
+                <a href="{% url 'complaint_detail' c.id %}"
+                    style="font-size:.72rem; white-space:nowrap; color:var(--ds-blue); font-weight:600; text-decoration:none;">
+                    Review →
+                </a>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-shield-check d-block mb-2" style="font-size:2rem; color:var(--ds-green);"></i>
+                <span style="font-size:.85rem;">No high-priority open complaints. Ward is stable.</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upcoming Meetings -->
+    <div class="col-lg-4">
+        <div class="ds-card h-100">
+            <div class="ds-card-header">
+                <p class="ds-card-title">
+                    <i class="bi bi-calendar-event-fill" style="color:var(--ds-purple);"></i>
+                    Upcoming Meetings
+                </p>
+                <a href="{% url 'meeting_list' %}"
+                    style="font-size:.75rem; color:var(--ds-blue); text-decoration:none; font-weight:600;">
+                    All →
+                </a>
+            </div>
+
+            {% if upcoming_meetings %}
+            {% for m in upcoming_meetings %}
+            <div class="meeting-item">
+                <div class="meeting-date-badge">
+                    <span>{{ m.meeting_date|date:"M" }}</span>
+                    <span class="day">{{ m.meeting_date|date:"d" }}</span>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div
+                        style="font-weight:600; font-size:.84rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        {{ m.title }}
+                    </div>
+                    <div style="font-size:.72rem; color:#6c757d;">
+                        {{ m.meeting_date|date:"H:i" }} · {{ m.location }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-calendar-x d-block mb-2" style="font-size:2rem;"></i>
+                <span style="font-size:.83rem;">No upcoming meetings scheduled.</span><br>
+                <a href="{% url 'schedule_meeting' %}" style="font-size:.8rem;">Schedule one now →</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-lg-3">
+        <div class="ds-card h-100">
+            <div class="ds-card-header">
+                <p class="ds-card-title">
+                    <i class="bi bi-lightning-charge-fill" style="color:var(--ds-amber);"></i>
+                    Quick Actions
+                </p>
+            </div>
+
+            <a href="{% url 'complaint_list' %}" class="quick-action">
+                <i class="bi bi-list-check"></i> Review Complaints
+            </a>
+            <a href="{% url 'schedule_meeting' %}" class="quick-action">
+                <i class="bi bi-calendar-plus"></i> Schedule Grama Sabha
+            </a>
+            <a href="{% url 'match_schemes' %}" class="quick-action">
+                <i class="bi bi-gift"></i> Browse Schemes
+            </a>
+            <a href="{% url 'add_ward' %}" class="quick-action">
+                <i class="bi bi-plus-circle"></i> Manage Wards
+            </a>
+            <a href="{% url 'ward_performance_report' %}" class="quick-action"
+                style="border-color:var(--ds-blue); color:var(--ds-blue);">
+                <i class="bi bi-file-earmark-bar-graph"></i> Performance Report
+            </a>
+        </div>
+    </div>
+
+</div><!-- /row 3 -->
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  Progress bar animation trigger (runs after DOM ready)         -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<script>
+    /* Animate progress bars on page load */
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.res-bar-fill, .hotspot-bar-fill, .progress-bar').forEach(el => {
+            const target = el.style.width;
+            el.style.width = '0';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => { el.style.width = target; });
+            });
+        });
+    });
+</script>
+
+{% endblock %}

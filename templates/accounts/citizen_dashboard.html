@@ -1,0 +1,379 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Bento Box Grid Layout for Dashboard */
+    .bento-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.5rem;
+    }
+
+    .bento-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 1.5rem;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* Grid plamements */
+    .bento-hero {
+        grid-column: span 12;
+    }
+
+    .bento-stat-main {
+        grid-column: span 12;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 991px) {
+        .bento-stat-main {
+            grid-template-columns: repeat(1, 1fr);
+        }
+    }
+
+    .bento-list {
+        grid-column: span 8;
+    }
+
+    .bento-side {
+        grid-column: span 4;
+    }
+
+    @media (max-width: 991px) {
+
+        .bento-list,
+        .bento-side {
+            grid-column: span 12;
+        }
+    }
+
+    /* Stat Cards Styling */
+    .stat-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .stat-card.primary {
+        background: linear-gradient(135deg, #1a237e, #3142ab);
+    }
+
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: #78350f;
+    }
+
+    .stat-card.success {
+        background: linear-gradient(135deg, #059669, #10b981);
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        backdrop-filter: blur(4px);
+    }
+
+    .warning .stat-icon {
+        background: rgba(255, 255, 255, 0.4);
+        color: #78350f;
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+        opacity: 0.9;
+    }
+
+    .warning .stat-title {
+        color: #78350f;
+        opacity: 1;
+    }
+
+    .stat-value {
+        font-size: 2.25rem;
+        font-weight: 800;
+        line-height: 1;
+        margin: 0;
+    }
+
+    /* Decals */
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: -20px;
+        right: -20px;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        pointer-events: none;
+    }
+
+    /* Table internal spacing */
+    .table-container {
+        margin: 0 -1.5rem -1.5rem -1.5rem;
+    }
+
+    .table-container .table {
+        margin-bottom: 0;
+    }
+
+    .table-container .table th:first-child,
+    .table-container .table td:first-child {
+        padding-left: 1.5rem;
+    }
+
+    .table-container .table th:last-child,
+    .table-container .table td:last-child {
+        padding-right: 1.5rem;
+    }
+
+    /* Custom Badges */
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.4em 0.8em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-pending {
+        background-color: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+    }
+
+    .status-in_progress {
+        background-color: #f0fdfa;
+        color: #0f766e;
+        border: 1px solid #ccfbf1;
+    }
+
+    .status-assigned {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+
+    .status-resolved {
+        background-color: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+    .status-rejected {
+        background-color: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+
+    /* Meeting widget */
+    .meeting-item {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        padding: 1rem;
+        border-radius: 12px;
+        background: #f8fafc;
+        margin-bottom: 0.75rem;
+        border: 1px solid #f1f5f9;
+        transition: all 0.2s;
+    }
+
+    .meeting-item:hover {
+        background: #fff;
+        border-color: #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    .meeting-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .meeting-date {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        width: 50px;
+        text-align: center;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .meeting-month {
+        background: #ef4444;
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 0.2rem 0;
+    }
+
+    .meeting-day {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #334155;
+        padding: 0.3rem 0;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1 text-dark">Citizen Workspace</h3>
+        <p class="text-secondary mb-0">Overview of your civic interactions and local ward updates.</p>
+    </div>
+    <a href="{% url 'update_profile' %}" class="btn btn-outline-primary d-flex align-items-center gap-2 rounded-pill">
+        <i class="bi bi-person-gear"></i> <span class="d-none d-sm-inline">Edit Profile</span>
+    </a>
+</div>
+
+<div class="bento-grid">
+
+    <!-- STATS ROW (3 Columns) -->
+    <div class="bento-stat-main">
+        <div class="stat-card primary bento-card border-0">
+            <div class="stat-icon"><i class="bi bi-megaphone-fill"></i></div>
+            <div class="stat-content">
+                <div class="stat-title">Total Reported</div>
+                <div class="stat-value">{{ total }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card warning bento-card border-0">
+            <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="stat-content">
+                <div class="stat-title">Action Pending</div>
+                <div class="stat-value">{{ pending }}</div>
+            </div>
+        </div>
+
+        <div class="stat-card success bento-card border-0">
+            <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="stat-content">
+                <div class="stat-title">Successfully Resolved</div>
+                <div class="stat-value">{{ resolved }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECENT COMPLAINTS TABLE (8 Columns) -->
+    <div class="bento-card bento-list shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-card-list me-2 text-primary"></i> Recent Complaints</h5>
+            <a href="{% url 'report_complaint' %}" class="btn btn-sm btn-primary rounded-pill">
+                <i class="bi bi-plus me-1"></i> New Issue
+            </a>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-hover table-striped">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Issue Title</th>
+                        <th>Status</th>
+                        <th>Date Submitted</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in recent_complaints %}
+                    <tr>
+                        <td class="fw-medium text-dark">{{ c.title }}</td>
+                        <td>
+                            <span class="badge rounded-pill status-badge 
+                                {% if c.status == 'pending' %}status-pending
+                                {% elif c.status == 'in_progress' %}status-in_progress
+                                {% elif c.status == 'assigned' %}status-assigned
+                                {% elif c.status == 'resolved' %}status-resolved
+                                {% elif c.status == 'rejected' %}status-rejected
+                                {% endif %}">
+                                {{ c.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="text-secondary">{{ c.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <a href="{% url 'complaint_detail' c.id %}"
+                                class="btn btn-sm btn-light border text-secondary rounded-pill fw-medium">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-muted opacity-50 d-block mb-3"></i>
+                            <h6 class="text-secondary fw-semibold">No complaints filed yet</h6>
+                            <p class="text-muted small mb-0">Your submitted issues will appear here.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- NEXT GRAMA SABHA WIDGET (4 Columns) -->
+    <div class="bento-card bento-side shadow-sm">
+        <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-calendar-event me-2 text-danger"></i> Upcoming Ward Meetings
+        </h5>
+
+        <div class="meeting-list flex-grow-1">
+            {% for meeting in upcoming_meetings %}
+            <div class="meeting-item">
+                <div class="meeting-date">
+                    <div class="meeting-month">{{ meeting.meeting_date|date:"M" }}</div>
+                    <div class="meeting-day">{{ meeting.meeting_date|date:"d" }}</div>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-1 text-dark fs-sm" style="font-size: 0.95rem;">{{ meeting.title }}</h6>
+                    <div class="text-secondary small d-flex align-items-center gap-1 mb-1">
+                        <i class="bi bi-clock"></i> {{ meeting.meeting_date|date:"H:i A" }}
+                    </div>
+                    <div class="text-secondary small d-flex align-items-center gap-1">
+                        <i class="bi bi-geo-alt"></i> {{ meeting.location }}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-4">
+                <i class="bi bi-calendar-x fs-1 text-muted opacity-50 d-block mb-3"></i>
+                <p class="text-muted small fw-medium">No upcoming Grama Sabha meetings scheduled for your ward.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-4 pt-3 border-top text-center">
+            <div class="d-flex align-items-center justify-content-center text-primary fw-medium"
+                style="font-size: 0.85rem;">
+                <i class="bi bi-info-circle me-2"></i> Stay involved in local decisions
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

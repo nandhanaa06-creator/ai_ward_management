@@ -1,0 +1,591 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* ── Scheme Recommendation Page ──────────────────────────────── */
+    :root {
+        --green: #06d6a0;
+        --amber: #f77f00;
+        --blue: #4361ee;
+        --purple: #7209b7;
+        --red: #ef233c;
+        --glass: rgba(255, 255, 255, 0.88);
+        --shadow: 0 16px 48px rgba(67, 97, 238, .10);
+    }
+
+    body {
+        background: linear-gradient(135deg, #eafaf4 0%, #e8eeff 50%, #fef9ee 100%);
+    }
+
+    /* ── Hero Banner ──────────────────────────────────────────────── */
+    .rec-hero {
+        background: linear-gradient(135deg, var(--blue), var(--purple));
+        border-radius: 20px;
+        padding: 2rem 2.5rem;
+        color: #fff;
+        margin-bottom: 2rem;
+        box-shadow: 0 12px 40px rgba(67, 97, 238, .28);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .rec-hero::before {
+        content: '';
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .07);
+    }
+
+    /* ── Stats Row ────────────────────────────────────────────────── */
+    .stat-pill {
+        background: rgba(255, 255, 255, .15);
+        border: 1px solid rgba(255, 255, 255, .3);
+        border-radius: 40px;
+        padding: .45rem 1.2rem;
+        font-size: .85rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    /* ── Profile Summary Card ─────────────────────────────────────── */
+    .profile-card {
+        background: var(--glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, .7);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .profile-item {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        font-size: .85rem;
+        color: #495057;
+    }
+
+    .profile-item i {
+        font-size: 1rem;
+        width: 20px;
+        text-align: center;
+    }
+
+    .profile-item strong {
+        color: #212529;
+    }
+
+    /* ── Section Header ───────────────────────────────────────────── */
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .section-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .section-header h5 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.05rem;
+    }
+
+    .section-header .badge-count {
+        font-size: .72rem;
+        padding: .25rem .65rem;
+        border-radius: 20px;
+        font-weight: 700;
+    }
+
+    /* ── Scheme Card ──────────────────────────────────────────────── */
+    .scheme-card {
+        background: var(--glass);
+        backdrop-filter: blur(10px);
+        border: 2px solid transparent;
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 1.6rem 1.75rem;
+        transition: transform .25s, box-shadow .25s, border-color .25s;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .scheme-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 24px 56px rgba(0, 0, 0, .12);
+    }
+
+    /* Eligible — green left Border */
+    .scheme-card.eligible {
+        border-left: 5px solid var(--green);
+    }
+
+    .scheme-card.near-match {
+        border-left: 5px solid var(--amber);
+    }
+
+    /* ── Badge styles ─────────────────────────────────────────────── */
+    .match-badge {
+        font-size: .7rem;
+        padding: .3rem .75rem;
+        border-radius: 30px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+    }
+
+    .match-badge.eligible {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .match-badge.near-match {
+        background: #fff3cd;
+        color: #7d5a00;
+    }
+
+    .criteria-chip {
+        background: #f1f3f9;
+        border-radius: 6px;
+        padding: .2rem .55rem;
+        font-size: .72rem;
+        color: #495057;
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+    }
+
+    /* ── Apply Button ─────────────────────────────────────────────── */
+    .btn-apply {
+        background: linear-gradient(135deg, var(--blue), var(--purple));
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: .55rem 1.4rem;
+        font-weight: 700;
+        font-size: .85rem;
+        transition: transform .2s, box-shadow .2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .btn-apply:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(67, 97, 238, .35);
+        color: #fff;
+    }
+
+    .btn-apply-outline {
+        background: transparent;
+        color: var(--blue);
+        border: 2px solid var(--blue);
+        border-radius: 10px;
+        padding: .5rem 1.3rem;
+        font-weight: 600;
+        font-size: .85rem;
+        transition: all .2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .btn-apply-outline:hover {
+        background: var(--blue);
+        color: #fff;
+    }
+
+    /* ── Near-match income bar ────────────────────────────────────── */
+    .income-bar-track {
+        height: 8px;
+        border-radius: 4px;
+        background: #e9ecef;
+        overflow: hidden;
+        margin: .35rem 0 .25rem;
+    }
+
+    .income-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--green), var(--amber));
+        transition: width .8s ease;
+    }
+
+    /* ── Empty State ──────────────────────────────────────────────── */
+    .empty-state {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: #adb5bd;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: .75rem;
+        display: block;
+    }
+
+    /* ── Benefit text truncation ──────────────────────────────────── */
+    .benefit-text {
+        font-size: .82rem;
+        color: #495057;
+        line-height: 1.55;
+        flex: 1;
+    }
+
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .scheme-card {
+        animation: fadeUp .35s ease both;
+    }
+
+        {
+        % for i in "1234567890" %
+    }
+
+    .row>*:nth-child({
+            {
+            forloop.counter
+        }
+
+    }) .scheme-card {
+        animation-delay: {
+                {
+                forloop.counter0
+            }
+        }
+
+        00ms;
+        /* stagger */
+    }
+
+        {
+        % endfor %
+    }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  HERO                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="rec-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-stars me-2"></i>Scheme Recommendations</h2>
+            <p class="mb-3 opacity-75">Personalised welfare programs matched to your eligibility profile</p>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="stat-pill"><i class="bi bi-check-circle-fill" style="color:#06d6a0;"></i> {{ eligible_count
+                    }} Eligible</span>
+                <span class="stat-pill"><i class="bi bi-exclamation-circle-fill" style="color:#f77f00;"></i> {{
+                    near_match_count }} Near-Match</span>
+                <span class="stat-pill"><i class="bi bi-person-fill"></i> Age {{ user_age }}</span>
+            </div>
+        </div>
+        <div class="text-end">
+            <div class="display-4 fw-black opacity-20" style="font-size:4rem; line-height:1;">{{ total_count }}</div>
+            <div style="font-size:.8rem; opacity:.7; margin-top:-.5rem;">Total Matches</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  PROFILE SUMMARY                                               -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="profile-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0"><i class="bi bi-person-vcard-fill text-primary me-2"></i>Your Eligibility Profile</h6>
+        <span class="badge bg-light text-primary border border-primary-subtle fw-semibold" style="font-size:.72rem;">
+            Used for matching
+        </span>
+    </div>
+    <div class="row g-3">
+        <div class="col-sm-6 col-md-3">
+            <div class="profile-item">
+                <i class="bi bi-cake2 text-primary"></i>
+                <div>
+                    <div class="text-muted" style="font-size:.72rem;">Age</div><strong>{{ user_age }} years</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="profile-item">
+                <i class="bi bi-currency-rupee text-success"></i>
+                <div>
+                    <div class="text-muted" style="font-size:.72rem;">Annual Income</div><strong>₹{{
+                        profile.annual_income|default:"—" }}</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="profile-item">
+                <i class="bi bi-gender-ambiguous text-info"></i>
+                <div>
+                    <div class="text-muted" style="font-size:.72rem;">Gender</div><strong>{{
+                        profile.get_gender_display|default:"—" }}</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="profile-item">
+                <i class="bi bi-briefcase text-warning"></i>
+                <div>
+                    <div class="text-muted" style="font-size:.72rem;">Occupation</div><strong>{{
+                        profile.occupation|default:"Not specified"|title }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-4" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  ELIGIBLE SCHEMES                                              -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="mb-4">
+    <div class="section-header">
+        <div class="section-icon" style="background:#d1fae5;">
+            <i class="bi bi-check-circle-fill" style="color:#06d6a0;"></i>
+        </div>
+        <div>
+            <h5>Fully Eligible Schemes</h5>
+            <p class="text-muted mb-0" style="font-size:.78rem;">You meet all criteria for these programs</p>
+        </div>
+        <span class="badge-count ms-auto" style="background:#d1fae5; color:#065f46;">{{ eligible_count }}</span>
+    </div>
+
+    {% if eligible %}
+    <div class="row g-3">
+        {% for item in eligible %}
+        {% with scheme=item.scheme %}
+        <div class="col-md-6 col-xl-4">
+            <div class="scheme-card eligible">
+
+                <!-- Header row -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="match-badge eligible">
+                        <i class="bi bi-check-circle-fill"></i> Eligible
+                    </span>
+                    {% if scheme.gender_target != 'A' %}
+                    <span class="criteria-chip">
+                        <i class="bi bi-gender-ambiguous"></i> {{ scheme.get_gender_target_display }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Title -->
+                <h6 class="fw-bold mb-1" style="font-size:.95rem; color:#212529;">{{ scheme.name }}</h6>
+                <p class="benefit-text mb-3">{{ scheme.benefits|truncatechars:120 }}</p>
+
+                <!-- Eligibility chips -->
+                <div class="d-flex flex-wrap gap-1 mb-3">
+                    <span class="criteria-chip"><i class="bi bi-person-fill"></i> Age {{ scheme.min_age }}–{{
+                        scheme.max_age }}</span>
+                    <span class="criteria-chip"><i class="bi bi-currency-rupee"></i> ≤ ₹{{ scheme.max_income }}</span>
+                    {% if scheme.target_occupation %}
+                    <span class="criteria-chip"><i class="bi bi-briefcase-fill"></i> {{
+                        scheme.target_occupation|truncatechars:30 }}</span>
+                    {% else %}
+                    <span class="criteria-chip"><i class="bi bi-people-fill"></i> All Occupations</span>
+                    {% endif %}
+                </div>
+
+                <!-- Description (collapsible) -->
+                <details class="mb-3">
+                    <summary style="font-size:.78rem; color:var(--blue); cursor:pointer; font-weight:600;">
+                        View Details
+                    </summary>
+                    <p style="font-size:.8rem; color:#495057; margin-top:.5rem; margin-bottom:0;">
+                        {{ scheme.description }}
+                    </p>
+                </details>
+
+                <!-- Apply button -->
+                <div class="mt-auto pt-2">
+                    {% if scheme.application_link %}
+                    <a href="{{ scheme.application_link }}" target="_blank" rel="noopener" class="btn-apply">
+                        <i class="bi bi-box-arrow-up-right"></i> Apply Now
+                    </a>
+                    {% else %}
+                    <span class="btn-apply" style="cursor:default; opacity:.7;">
+                        <i class="bi bi-envelope-fill"></i> Visit Ward Office to Apply
+                    </span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-search"></i>
+        <p class="fw-semibold mb-1">No fully eligible schemes found</p>
+        <p style="font-size:.82rem;">Check the "Near-Match" section below — you may still qualify with a review.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  NEAR-MATCH SCHEMES                                            -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="mb-4">
+    <div class="section-header">
+        <div class="section-icon" style="background:#fff3cd;">
+            <i class="bi bi-exclamation-circle-fill" style="color:#f77f00;"></i>
+        </div>
+        <div>
+            <h5>Recommended with Review</h5>
+            <p class="text-muted mb-0" style="font-size:.78rem;">
+                Your income is within {{ near_match_pct }}% of the limit — the ward office can still consider your
+                application
+            </p>
+        </div>
+        <span class="badge-count ms-auto" style="background:#fff3cd; color:#7d5a00;">{{ near_match_count }}</span>
+    </div>
+
+    {% if near_match %}
+    <div class="row g-3">
+        {% for item in near_match %}
+        {% with scheme=item.scheme %}
+        <div class="col-md-6 col-xl-4">
+            <div class="scheme-card near-match">
+
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="match-badge near-match">
+                        <i class="bi bi-exclamation-circle-fill"></i> Near-Match
+                    </span>
+                    <span class="criteria-chip" style="color:#7d5a00; background:#fff3cd;">
+                        +{{ item.income_pct }}% over limit
+                    </span>
+                </div>
+
+                <h6 class="fw-bold mb-1" style="font-size:.95rem; color:#212529;">{{ scheme.name }}</h6>
+                <p class="benefit-text mb-2">{{ scheme.benefits|truncatechars:100 }}</p>
+
+                <!-- Income proximity bar -->
+                <div style="font-size:.72rem; color:#6c757d; margin-bottom:.1rem;">
+                    Income proximity to limit
+                </div>
+                <div class="income-bar-track">
+                    {# Cap bar at 100 % visually: fill = 100/(1 + overage_pct/100) #}
+                    <div class="income-bar-fill" style="width:{% widthratio 100 item.income_pct|add:100 100 %}%;"></div>
+                </div>
+                <div style="font-size:.72rem; color:#7d5a00; font-weight:600;">
+                    ₹{{ item.income_gap }} above cap of ₹{{ scheme.max_income }}
+                </div>
+
+                <!-- Chips -->
+                <div class="d-flex flex-wrap gap-1 mt-2 mb-3">
+                    <span class="criteria-chip"><i class="bi bi-person-fill"></i> Age {{ scheme.min_age }}–{{
+                        scheme.max_age }}</span>
+                    <span class="criteria-chip"><i class="bi bi-currency-rupee"></i> ≤ ₹{{ scheme.max_income }}</span>
+                    {% if scheme.target_occupation %}
+                    <span class="criteria-chip"><i class="bi bi-briefcase-fill"></i> {{
+                        scheme.target_occupation|truncatechars:30 }}</span>
+                    {% else %}
+                    <span class="criteria-chip"><i class="bi bi-people-fill"></i> All Occupations</span>
+                    {% endif %}
+                </div>
+
+                <details class="mb-3">
+                    <summary style="font-size:.78rem; color:var(--blue); cursor:pointer; font-weight:600;">
+                        View Details
+                    </summary>
+                    <p style="font-size:.8rem; color:#495057; margin-top:.5rem; margin-bottom:0;">
+                        {{ scheme.description }}
+                    </p>
+                </details>
+
+                <!-- Apply with review note -->
+                <div class="mt-auto pt-2">
+                    {% if scheme.application_link %}
+                    <a href="{{ scheme.application_link }}" target="_blank" rel="noopener" class="btn-apply-outline">
+                        <i class="bi bi-box-arrow-up-right"></i> Apply for Review
+                    </a>
+                    {% else %}
+                    <span class="btn-apply-outline" style="cursor:default; opacity:.8;">
+                        <i class="bi bi-building"></i> Visit Ward Office
+                    </span>
+                    {% endif %}
+                    <p style="font-size:.7rem; color:#856404; margin-top:.4rem; margin-bottom:0;">
+                        ⚠️ Approval subject to ward member discretion
+                    </p>
+                </div>
+
+            </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-clipboard-x"></i>
+        <p class="fw-semibold mb-1">No near-match schemes</p>
+        <p style="font-size:.82rem;">Great news — either you're fully eligible for all matched schemes, or none are
+            close.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  FOOTER CTA                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+{% if total_count == 0 %}
+<div class="text-center py-5">
+    <i class="bi bi-emoji-neutral display-4 text-muted d-block mb-2"></i>
+    <h5 class="text-muted">No matching schemes found for your current profile</h5>
+    <p class="text-muted mb-3" style="font-size:.88rem;">
+        This may be because your profile data is incomplete or no active schemes match your criteria right now.
+    </p>
+    <a href="{% url 'dashboard' %}" class="btn-apply">
+        <i class="bi bi-arrow-left-circle-fill"></i> Back to Dashboard
+    </a>
+</div>
+{% else %}
+<div class="text-center mt-4 mb-2">
+    <p class="text-muted" style="font-size:.82rem;">
+        <i class="bi bi-info-circle me-1"></i>
+        Scheme data is maintained by the Panchayath Administration. Contact your ward office for the latest updates.
+    </p>
+</div>
+{% endif %}
+
+{% endblock %}

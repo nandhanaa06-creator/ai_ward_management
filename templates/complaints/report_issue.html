@@ -1,0 +1,582 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  /* ── Premium Report Issue Page ─────────────────────────────────── */
+  :root {
+    --brand-primary:  #4361ee;
+    --brand-accent:   #7209b7;
+    --brand-success:  #06d6a0;
+    --brand-warning:  #f77f00;
+    --brand-danger:   #ef233c;
+    --glass-bg:       rgba(255, 255, 255, 0.85);
+    --glass-border:   rgba(255, 255, 255, 0.6);
+    --shadow-card:    0 20px 60px rgba(67, 97, 238, 0.12);
+  }
+
+  body { background: linear-gradient(135deg, #e8eeff 0%, #f4f0ff 50%, #e8f8f4 100%); }
+
+  /* ── Page Header ─────────────────────────────────────────────── */
+  .page-hero {
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+    border-radius: 20px;
+    padding: 2rem 2.5rem;
+    color: #fff;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(67, 97, 238, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .page-hero::before {
+    content: '';
+    position: absolute; top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    background: rgba(255,255,255,.08);
+    border-radius: 50%;
+  }
+  .page-hero::after {
+    content: '';
+    position: absolute; bottom: -60px; right: 60px;
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,.05);
+    border-radius: 50%;
+  }
+  .page-hero .hero-icon {
+    font-size: 3rem;
+    opacity: .9;
+    margin-bottom: .5rem;
+    display: block;
+  }
+
+  /* ── Progress Tracker ────────────────────────────────────────── */
+  .progress-tracker {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 2rem;
+  }
+  .progress-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+  }
+  .progress-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 18px; left: 60%; right: -40%;
+    height: 3px;
+    background: #dee2e6;
+    z-index: 0;
+    transition: background .4s;
+  }
+  .progress-step.done:not(:last-child)::after {
+    background: var(--brand-primary);
+  }
+  .step-bubble {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .85rem;
+    border: 3px solid #dee2e6;
+    background: #fff;
+    color: #adb5bd;
+    position: relative; z-index: 1;
+    transition: all .3s;
+  }
+  .progress-step.done .step-bubble {
+    background: var(--brand-primary);
+    border-color: var(--brand-primary);
+    color: #fff;
+  }
+  .progress-step.active .step-bubble {
+    background: #fff;
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    box-shadow: 0 0 0 5px rgba(67, 97, 238, .15);
+  }
+  .step-label {
+    display: block;
+    font-size: .7rem;
+    margin-top: .3rem;
+    color: #6c757d;
+    font-weight: 500;
+  }
+  .progress-step.done .step-label,
+  .progress-step.active .step-label { color: var(--brand-primary); font-weight: 600; }
+
+  /* ── Main Form Card ──────────────────────────────────────────── */
+  .form-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
+    padding: 2.5rem;
+  }
+
+  /* ── Section Dividers ───────────────────────────────────────── */
+  .section-label {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--brand-primary);
+    margin-bottom: .75rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(67, 97, 238, .2);
+  }
+
+  /* ── Form Controls ──────────────────────────────────────────── */
+  .form-control, .form-select {
+    border-radius: 10px;
+    border: 1.5px solid #e0e4ff;
+    padding: .65rem 1rem;
+    font-size: .92rem;
+    transition: border-color .25s, box-shadow .25s;
+  }
+  .form-control:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 4px rgba(67, 97, 238, .12);
+  }
+  .form-label {
+    font-weight: 600;
+    font-size: .85rem;
+    color: #343a40;
+    margin-bottom: .4rem;
+  }
+  .form-text { font-size: .78rem; }
+
+  /* ── Image Upload ───────────────────────────────────────────── */
+  .upload-zone {
+    border: 2.5px dashed #c5cae9;
+    border-radius: 14px;
+    padding: 1.5rem;
+    text-align: center;
+    background: rgba(67,97,238,.03);
+    cursor: pointer;
+    transition: border-color .25s, background .25s;
+    position: relative;
+  }
+  .upload-zone:hover { border-color: var(--brand-primary); background: rgba(67,97,238,.06); }
+  .upload-zone .upload-icon { font-size: 2.2rem; color: #a0aaf0; }
+  .upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+
+  /* ── Image Preview ──────────────────────────────────────────── */
+  #image-preview-wrapper {
+    display: none;
+    margin-top: 1rem;
+    text-align: center;
+    animation: fadeInUp .3s ease;
+  }
+  #image-preview {
+    max-height: 220px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.15);
+    object-fit: cover;
+    max-width: 100%;
+  }
+  .preview-badge {
+    margin-top: .5rem;
+    display: inline-block;
+    font-size: .75rem;
+    padding: .25rem .75rem;
+    background: var(--brand-success);
+    border-radius: 30px;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ── AI Badge ───────────────────────────────────────────────── */
+  .ai-badge {
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+    color: #fff;
+    font-size: .7rem;
+    padding: .2rem .6rem;
+    border-radius: 30px;
+    font-weight: 700;
+    letter-spacing: .05em;
+  }
+
+  /* ── Ward Info Card ─────────────────────────────────────────── */
+  .ward-info-pill {
+    background: linear-gradient(135deg, #e8eeff, #f0e8ff);
+    border: 1px solid #c5cae9;
+    border-radius: 12px;
+    padding: .75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+  }
+  .ward-info-pill i { font-size: 1.4rem; color: var(--brand-primary); }
+  .ward-info-pill .ward-name { font-weight: 700; font-size: .9rem; color: #343a40; }
+  .ward-info-pill .ward-sub  { font-size: .75rem; color: #6c757d; }
+
+  /* ── Submit Button ──────────────────────────────────────────── */
+  .btn-submit {
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+    border: none;
+    border-radius: 12px;
+    padding: .8rem 2.5rem;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(67, 97, 238, .3);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(67, 97, 238, .4);
+    color: #fff;
+  }
+  .btn-submit:active { transform: translateY(0); }
+
+  /* ── Sidebar Panel ──────────────────────────────────────────── */
+  .info-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
+    padding: 1.75rem;
+    height: 100%;
+  }
+  .tip-item { display: flex; gap: .75rem; margin-bottom: 1rem; align-items: flex-start; }
+  .tip-icon {
+    width: 36px; height: 36px; min-width: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+  .tip-text { font-size: .82rem; color: #495057; line-height: 1.5; }
+  .tip-text strong { display: block; font-size: .85rem; color: #212529; }
+
+  /* ── Django Messages ────────────────────────────────────────── */
+  .alert { border-radius: 12px; font-size: .88rem; }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  MESSAGES                                                       -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+{% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif 'warning' in message.tags %}warning{% elif 'info' in message.tags %}info{% else %}success{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        {% if 'warning' in message.tags %}<i class="bi bi-exclamation-triangle-fill text-warning"></i>
+        {% elif 'info' in message.tags %}<i class="bi bi-info-circle-fill text-info"></i>
+        {% else %}<i class="bi bi-check-circle-fill text-success"></i>{% endif %}
+        <span>{% if 'safe' in message.extra_tags %}{{ message|safe }}{% else %}{{ message }}{% endif %}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  HERO                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="page-hero">
+  <i class="bi bi-megaphone-fill hero-icon"></i>
+  <h2 class="fw-bold mb-1">Report a Ward Issue</h2>
+  <p class="mb-0 opacity-75">Our AI engine automatically categorises your complaint and flags emergencies for fast action.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  PROGRESS TRACKER                                               -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="progress-tracker mb-4">
+  <div class="progress-step done">
+    <span class="step-bubble"><i class="bi bi-check-lg"></i></span>
+    <span class="step-label">Logged In</span>
+  </div>
+  <div class="progress-step active">
+    <span class="step-bubble">2</span>
+    <span class="step-label">Fill Details</span>
+  </div>
+  <div class="progress-step">
+    <span class="step-bubble">3</span>
+    <span class="step-label">Submit</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  MAIN LAYOUT                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="row g-4">
+
+  <!-- ── FORM COLUMN ─────────────────────────────────────────────── -->
+  <div class="col-lg-8">
+    <div class="form-card">
+
+      <form method="post" enctype="multipart/form-data" id="complaintForm" novalidate>
+        {% csrf_token %}
+
+        <!-- Hidden geo fields -->
+        {{ form.latitude }}
+        {{ form.longitude }}
+
+        <!-- ── Ward (read-only display) ── -->
+        <p class="section-label"><i class="bi bi-geo-alt-fill"></i> Your Ward</p>
+        <div class="ward-info-pill mb-3">
+          <i class="bi bi-building"></i>
+          <div>
+            {% if user.ward %}
+              <div class="ward-name">{{ user.ward }}</div>
+              <div class="ward-sub">Complaints will be routed to this ward automatically</div>
+            {% else %}
+              <div class="ward-name text-warning">No ward assigned</div>
+              <div class="ward-sub">Please ask your administrator to assign a ward to your account</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- ── Issue Details ── -->
+        <p class="section-label mt-4"><i class="bi bi-file-text-fill"></i> Issue Details</p>
+
+        <div class="mb-3">
+          <label for="id_title" class="form-label">{{ form.title.label }}</label>
+          {{ form.title }}
+          {% if form.title.errors %}
+            <div class="invalid-feedback d-block">{{ form.title.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label for="id_description" class="form-label">
+            {{ form.description.label }}
+            <span class="ai-badge ms-1"><i class="bi bi-cpu"></i> AI-Powered</span>
+          </label>
+          {{ form.description }}
+          <div class="form-text text-muted">{{ form.description.help_text }}</div>
+          {% if form.description.errors %}
+            <div class="invalid-feedback d-block">{{ form.description.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label for="id_address_extra" class="form-label">{{ form.address_extra.label }}</label>
+          {{ form.address_extra }}
+          {% if form.address_extra.errors %}
+            <div class="invalid-feedback d-block">{{ form.address_extra.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+
+        <!-- ── Photo Upload ── -->
+        <p class="section-label mt-4"><i class="bi bi-camera-fill"></i> Evidence Photo</p>
+
+        <div class="upload-zone mb-2" id="uploadZone">
+          <i class="bi bi-cloud-arrow-up upload-icon"></i>
+          <p class="mt-2 mb-0 fw-semibold" style="font-size:.9rem;">Click or Drag &amp; Drop to Upload</p>
+          <p class="text-muted mb-0" style="font-size:.78rem;">JPG, PNG, WEBP — max 10 MB</p>
+          {{ form.image }}
+        </div>
+
+        <!-- Image preview -->
+        <div id="image-preview-wrapper">
+          <img id="image-preview" src="#" alt="Preview">
+          <div><span class="preview-badge"><i class="bi bi-check-circle me-1"></i>Image Ready</span></div>
+          <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="removeImage">
+            <i class="bi bi-x-circle me-1"></i>Remove
+          </button>
+        </div>
+
+        {% if form.image.errors %}
+          <div class="invalid-feedback d-block mt-1">{{ form.image.errors|join:", " }}</div>
+        {% endif %}
+
+        <!-- ── Location (auto-detect) ── -->
+        <p class="section-label mt-4"><i class="bi bi-pin-map-fill"></i> GPS Location <span class="text-muted fw-normal" style="text-transform:none;font-size:.75rem;">(optional)</span></p>
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" id="detectLocationBtn">
+            <i class="bi bi-crosshair me-1"></i> Detect My Location
+          </button>
+          <span id="locationStatus" class="text-muted" style="font-size:.8rem;"></span>
+        </div>
+
+        <!-- ── Submit ── -->
+        <hr class="my-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <a href="{% url 'complaint_list' %}" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="bi bi-arrow-left me-1"></i> Cancel
+          </a>
+          <button type="submit" class="btn btn-submit" id="submitBtn">
+            <i class="bi bi-send-fill me-2"></i> Submit Complaint
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div><!-- /col-lg-8 -->
+
+  <!-- ── INFO SIDEBAR ─────────────────────────────────────────────── -->
+  <div class="col-lg-4">
+    <div class="info-panel">
+
+      <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb-fill text-warning me-2"></i>How It Works</h6>
+
+      <div class="tip-item">
+        <div class="tip-icon" style="background:#e8eeff;">
+          <i class="bi bi-cpu text-primary"></i>
+        </div>
+        <div class="tip-text">
+          <strong>AI Categorisation</strong>
+          Your description is scanned for keywords like "pipe", "wire", "pothole" to auto-detect the category.
+        </div>
+      </div>
+
+      <div class="tip-item">
+        <div class="tip-icon" style="background:#fff3cd;">
+          <i class="bi bi-exclamation-triangle text-warning"></i>
+        </div>
+        <div class="tip-text">
+          <strong>Emergency Escalation</strong>
+          Words like "danger", "accident", "emergency" automatically set priority to <strong>High</strong>.
+        </div>
+      </div>
+
+      <div class="tip-item">
+        <div class="tip-icon" style="background:#d1f2eb;">
+          <i class="bi bi-shield-check" style="color:#06d6a0;"></i>
+        </div>
+        <div class="tip-text">
+          <strong>Duplicate Detection</strong>
+          If a similar complaint was raised in your ward in the last 24 hours, yours will be linked to it — no double work.
+        </div>
+      </div>
+
+      <div class="tip-item">
+        <div class="tip-icon" style="background:#f8d7da;">
+          <i class="bi bi-geo-alt text-danger"></i>
+        </div>
+        <div class="tip-text">
+          <strong>GPS Location</strong>
+          Use "Detect My Location" to pin your exact coordinates for faster field worker dispatch.
+        </div>
+      </div>
+
+      <hr>
+
+      <h6 class="fw-bold mb-3"><i class="bi bi-tags-fill text-primary me-2"></i>Category Keywords</h6>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="badge rounded-pill" style="background:#e8eeff;color:#4361ee;">💧 Water: pipe, leak, flood</span>
+        <span class="badge rounded-pill" style="background:#fff3cd;color:#856404;">⚡ Electricity: wire, dark, power</span>
+        <span class="badge rounded-pill" style="background:#d1f2eb;color:#0a5c3b;">🛣 Roads: pothole, crack</span>
+        <span class="badge rounded-pill" style="background:#f8d7da;color:#721c24;">🗑 Sanitation: garbage, waste</span>
+        <span class="badge rounded-pill" style="background:#e2d9f3;color:#4a2568;">🏗 Construction: wall, debris</span>
+        <span class="badge rounded-pill" style="background:#d4edda;color:#155724;">🌳 Trees: fallen, branch</span>
+      </div>
+
+    </div>
+  </div><!-- /col-lg-4 -->
+
+</div><!-- /row -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  JAVASCRIPT                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<script>
+  /* ── Image Preview ─────────────────────────────────────────── */
+  const imageInput   = document.getElementById('id_image');
+  const previewWrap  = document.getElementById('image-preview-wrapper');
+  const previewImg   = document.getElementById('image-preview');
+  const removeBtn    = document.getElementById('removeImage');
+  const uploadZone   = document.getElementById('uploadZone');
+
+  imageInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewImg.src = e.target.result;
+        previewWrap.style.display = 'block';
+        uploadZone.style.borderColor = '#06d6a0';
+        uploadZone.style.background  = 'rgba(6,214,160,.05)';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  removeBtn.addEventListener('click', function () {
+    imageInput.value = '';
+    previewWrap.style.display = 'none';
+    uploadZone.style.borderColor = '#c5cae9';
+    uploadZone.style.background  = 'rgba(67,97,238,.03)';
+  });
+
+  /* ── GPS Location Detect ───────────────────────────────────── */
+  const detectBtn    = document.getElementById('detectLocationBtn');
+  const locationStat = document.getElementById('locationStatus');
+  const latInput     = document.getElementById('id_latitude');
+  const lngInput     = document.getElementById('id_longitude');
+
+  detectBtn.addEventListener('click', function () {
+    if (!navigator.geolocation) {
+      locationStat.textContent = '❌ Geolocation not supported by your browser.';
+      return;
+    }
+    detectBtn.disabled = true;
+    detectBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Detecting…';
+    locationStat.textContent = '';
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        latInput.value = pos.coords.latitude.toFixed(6);
+        lngInput.value = pos.coords.longitude.toFixed(6);
+        detectBtn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Location Set';
+        detectBtn.classList.replace('btn-outline-primary', 'btn-success');
+        locationStat.innerHTML =
+          `<i class="bi bi-geo-alt-fill text-success"></i> ` +
+          `${pos.coords.latitude.toFixed(4)}°N, ${pos.coords.longitude.toFixed(4)}°E`;
+      },
+      err => {
+        detectBtn.disabled  = false;
+        detectBtn.innerHTML = '<i class="bi bi-crosshair me-1"></i> Retry';
+        locationStat.textContent = `⚠️ ${err.message}`;
+      },
+      { timeout: 8000 }
+    );
+  });
+
+  /* ── Drag & Drop ───────────────────────────────────────────── */
+  ['dragover', 'dragenter'].forEach(ev => {
+    uploadZone.addEventListener(ev, e => {
+      e.preventDefault();
+      uploadZone.style.borderColor = 'var(--brand-primary)';
+    });
+  });
+  ['dragleave', 'drop'].forEach(ev => {
+    uploadZone.addEventListener(ev, e => {
+      e.preventDefault();
+      uploadZone.style.borderColor = '#c5cae9';
+    });
+  });
+  uploadZone.addEventListener('drop', e => {
+    const files = e.dataTransfer.files;
+    if (files.length) {
+      imageInput.files = files;
+      imageInput.dispatchEvent(new Event('change'));
+    }
+  });
+
+  /* ── Submit Spinner ────────────────────────────────────────── */
+  document.getElementById('complaintForm').addEventListener('submit', function () {
+    const btn = document.getElementById('submitBtn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Submitting…';
+    btn.disabled  = true;
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow p-4">
+            <h3 class="mb-4"><i class="bi bi-megaphone me-2"></i>Report a New Issue</h3>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Issue Title</label>
+                    {{ form.title }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Description</label>
+                    {{ form.description }}
+                    <div class="form-text text-muted">Be specific so our AI can categorize it correctly.</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Photo Evidence</label>
+                        {{ form.image }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Specific Landmark/Location</label>
+                        {{ form.address_extra }}
+                    </div>
+                </div>
+                <hr>
+                <button type="submit" class="btn btn-primary btn-lg w-100">Submit Complaint</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

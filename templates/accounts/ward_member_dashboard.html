@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="fw-bold">Management Dashboard: {{ ward_name }}</h2>
+            <p class="text-muted">Overview of civic issues and field worker performance.</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-start border-primary border-4 shadow-sm p-3">
+                <small class="text-uppercase fw-bold text-muted">Total Complaints</small>
+                <h3 class="mb-0">{{ total }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-danger border-4 shadow-sm p-3">
+                <small class="text-uppercase fw-bold text-muted">Awaiting Action</small>
+                <h3 class="mb-0 text-danger">{{ new_issues }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-success border-4 shadow-sm p-3">
+                <small class="text-uppercase fw-bold text-muted">Completed</small>
+                <h3 class="mb-0 text-success">{{ resolved }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-start border-info border-4 shadow-sm p-3">
+                <small class="text-uppercase fw-bold text-muted">Schemes Active</small>
+                <h3 class="mb-0">0</h3> </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow p-4 mb-4">
+                <h5>Quick Tasks</h5>
+                <hr>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'complaint_list' %}" class="btn btn-outline-primary text-start">
+                        <i class="bi bi-list-check me-2"></i> Review Unassigned Complaints
+                    </a>
+                    <a href="#" class="btn btn-outline-secondary text-start">
+                        <i class="bi bi-megaphone me-2"></i> Schedule Grama Sabha Meeting
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow p-4">
+                <h5>Ward Info</h5>
+                <p><strong>Member:</strong> {{ user.get_full_name }}</p>
+                <p><strong>Ward ID:</strong> {{ user.ward.ward_number }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

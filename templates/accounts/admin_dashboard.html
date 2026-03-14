@@ -1,0 +1,395 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Admin UI Adjustments */
+    .admin-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    @media (max-width: 1200px) {
+        .admin-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .admin-stats {
+            grid-template-columns: repeat(1, 1fr);
+        }
+    }
+
+    .stat-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        backdrop-filter: blur(4px);
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+        opacity: 0.9;
+    }
+
+    .stat-value {
+        font-size: 2.25rem;
+        font-weight: 800;
+        line-height: 1;
+        margin: 0;
+    }
+
+    .stat-card.primary {
+        background: linear-gradient(135deg, #1a237e, #3142ab);
+    }
+
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: #78350f;
+    }
+
+    .warning .stat-title {
+        color: #78350f;
+        opacity: 1;
+    }
+
+    .warning .stat-icon {
+        background: rgba(255, 255, 255, 0.4);
+        color: #78350f;
+    }
+
+    .stat-card.success {
+        background: linear-gradient(135deg, #059669, #10b981);
+    }
+
+    .stat-card.danger {
+        background: linear-gradient(135deg, #be123c, #e11d48);
+    }
+
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: -20px;
+        right: -20px;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        pointer-events: none;
+    }
+
+    /* Notification Center Panel */
+    .notif-panel {
+        background: #fff;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        margin-bottom: 2rem;
+    }
+
+    .alert-strip {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        border-left: 4px solid;
+    }
+
+    .alert-strip:last-child {
+        margin-bottom: 0;
+    }
+
+    .alert-urgent {
+        background: #fef2f2;
+        border-left-color: #ef4444;
+        color: #b91c1c;
+    }
+
+    .alert-rating {
+        background: #fffbeb;
+        border-left-color: #f59e0b;
+        color: #b45309;
+    }
+
+    /* Filters Form */
+    .filter-bar {
+        background: var(--glass-bg);
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid var(--glass-border);
+    }
+
+    .table-responsive {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+    }
+
+    .table-responsive table {
+        margin-bottom: 0;
+    }
+
+    .table-responsive th:first-child,
+    .table-responsive td:first-child {
+        padding-left: 1.5rem;
+    }
+
+    /* Custom Badges */
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.4em 0.8em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-pending {
+        background-color: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+    }
+
+    .badge-assigned {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+
+    .badge-in_progress {
+        background-color: #f0fdfa;
+        color: #0f766e;
+        border: 1px solid #ccfbf1;
+    }
+
+    .badge-resolved {
+        background-color: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+    .badge-rejected {
+        background-color: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+
+    .priority-high {
+        color: #ef4444;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .priority-medium {
+        color: #f59e0b;
+        font-weight: 600;
+    }
+
+    .priority-low {
+        color: #10b981;
+        font-weight: 600;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-shield-shaded text-primary me-2"></i>God Mode Dashboard</h3>
+        <p class="text-secondary mb-0">Global oversight terminal for Panchayath Administration.</p>
+    </div>
+</div>
+
+<div class="admin-stats">
+    <div class="stat-card primary">
+        <div class="stat-icon"><i class="bi bi-inboxes-fill"></i></div>
+        <div class="stat-content">
+            <div class="stat-title">System-Wide Tickets</div>
+            <div class="stat-value">{{ total_complaints }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card warning">
+        <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+        <div class="stat-content">
+            <div class="stat-title">Total Pending</div>
+            <div class="stat-value">{{ pending_complaints }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card success">
+        <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="stat-content">
+            <div class="stat-title">Resolution Rate</div>
+            <div class="stat-value">{{ resolved_rate }}%</div>
+        </div>
+    </div>
+
+    <div class="stat-card danger">
+        <div class="stat-icon"><i class="bi bi-fire"></i></div>
+        <div class="stat-content">
+            <div class="stat-title">Hotspot (Pending)</div>
+            <div class="stat-value">
+                {% if hotspot_ward %}W{{ hotspot_ward.ward_number }}{% else %}N/A{% endif %}
+            </div>
+            {% if hotspot_ward %}
+                <div class="small opacity-75 mt-1">{{ hotspot_ward.pending_count }} issues</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if urgent_count > 0 or low_rating_count > 0 %}
+<div class="notif-panel">
+    <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-bell-fill text-danger me-2"></i>Action Required</h5>
+
+    {% for c in urgent_reviews %}
+    <div class="alert-strip alert-urgent">
+        <i class="bi bi-clock-history fs-4"></i>
+        <div class="flex-grow-1">
+            <h6 class="mb-0 fw-bold">SLA Breach: Over 48 Hours Pending</h6>
+            <div class="small opacity-75">Complaint #{{ c.id }} from Ward {{ c.ward.ward_number }} is stagnating.</div>
+        </div>
+        <a href="{% url 'complaint_detail' c.id %}" class="btn btn-sm btn-outline-danger bg-white">Intervene</a>
+    </div>
+    {% endfor %}
+
+    {% for c in low_ratings %}
+    <div class="alert-strip alert-rating">
+        <i class="bi bi-star-half fs-4"></i>
+        <div class="flex-grow-1">
+            <h6 class="mb-0 fw-bold">Quality Alert: Low Citizen Rating ({{ c.citizen_rating }} Stars)</h6>
+            <div class="small opacity-75">Complaint #{{ c.id }} was rated poorly after resolution. Assigned Worker: {{ c.assigned_worker.username|default:"Unassigned" }}.</div>
+        </div>
+        <a href="{% url 'complaint_detail' c.id %}" class="btn btn-sm btn-outline-warning text-dark bg-white">Review Case</a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="mb-3 d-flex align-items-end justify-content-between">
+    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-globe-americas text-primary me-2"></i>Global Ticket Registry</h5>
+</div>
+
+<div class="filter-bar">
+    <form method="get" class="d-flex gap-3 align-items-end w-100 m-0">
+        <div>
+            <label class="form-label small text-secondary fw-semibold mb-1">Status Filter</label>
+            <select name="status" class="form-select form-select-sm" style="border-radius: 8px; width: 140px;">
+                <option value="">All Statuses</option>
+                <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending</option>
+                <option value="assigned" {% if current_status == "assigned" %}selected{% endif %}>Assigned</option>
+                <option value="in_progress" {% if current_status == "in_progress" %}selected{% endif %}>In Progress</option>
+                <option value="resolved" {% if current_status == "resolved" %}selected{% endif %}>Resolved</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label small text-secondary fw-semibold mb-1">Priority Level</label>
+            <select name="priority" class="form-select form-select-sm" style="border-radius: 8px; width: 140px;">
+                <option value="">All Priorities</option>
+                <option value="high" {% if current_priority == "high" %}selected{% endif %}>High</option>
+                <option value="medium" {% if current_priority == "medium" %}selected{% endif %}>Medium</option>
+                <option value="low" {% if current_priority == "low" %}selected{% endif %}>Low</option>
+            </select>
+        </div>
+        <div class="ms-auto">
+            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">Apply Filters</button>
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-light btn-sm rounded-pill px-3 ms-2 border">Reset</a>
+        </div>
+    </form>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover table-striped">
+        <thead class="bg-light">
+            <tr>
+                <th>ID</th>
+                <th>Ward</th>
+                <th>Issue Details</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in complaints %}
+            <tr>
+                <td class="text-secondary fw-medium">#{{ c.id }}</td>
+                <td>
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary rounded-pill">W{{ c.ward.ward_number }}</span>
+                </td>
+                <td>
+                    <div class="fw-bold text-dark">{{ c.title }}</div>
+                    <div class="small text-muted">{{ c.created_at|date:"M d, Y" }} | By {{ c.user.username }}</div>
+                </td>
+                <td class="text-secondary fw-medium">{{ c.category }}</td>
+                <td>
+                    <div class="priority-{{ c.priority }}">
+                        {% if c.priority == "high" %}
+                            <i class="bi bi-arrow-up-circle-fill"></i>
+                        {% endif %}
+                        {{ c.get_priority_display }}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge rounded-pill status-badge badge-{{ c.status }}">{{ c.get_status_display }}</span>
+                </td>
+                <td>
+                    <a href="{% url 'complaint_detail' c.id %}" class="btn btn-sm btn-light border text-primary rounded-pill fw-medium">
+                        Manage <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7rem;"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center py-5">
+                    <i class="bi bi-file-earmark-x fs-1 text-muted opacity-25 d-block mb-3"></i>
+                    <h6 class="text-secondary fw-bold">No complaints found.</h6>
+                    <p class="text-muted small">Try adjusting your filters.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
