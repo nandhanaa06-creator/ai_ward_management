@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Q
 from decimal import Decimal
-from datetime import date
+from datetime import date, timedelta
 
 from .models import Scheme
-from accounts.models import CitizenProfile
+from accounts.models import CitizenProfile, User
+from .forms import SchemeForm
 
 
 # ── Constants ───────────────────────────────────────────────────────────────
@@ -108,7 +109,103 @@ def run_matching_engine(profile, user_age):
     return eligible, near_match
 
 
+def get_eligible_beneficiaries(scheme):
+    """
+    Reverse matching engine: finds all citizens eligible for a specific scheme.
+    Returns a QuerySet of User objects (citizens).
+    """
+    today = date.today()
+    birth_year_min = today.year - scheme.max_age
+    birth_year_max = today.year - scheme.min_age
+    
+    # 1. Base QuerySet: Active Citizen Profiles
+    queryset = CitizenProfile.objects.filter(user__role='citizen')
+    
+    # 2. Age Filter (approximate by year for QuerySet performance)
+    queryset = queryset.filter(
+        date_of_birth__year__gte=birth_year_min,
+        date_of_birth__year__lte=birth_year_max
+    )
+    
+    # 3. Gender Filter
+    if scheme.gender_target != 'A':
+        queryset = queryset.filter(gender=scheme.gender_target)
+        
+    # 4. Income Filter
+    queryset = queryset.filter(annual_income__lte=scheme.max_income)
+    
+    # 5. Occupation Filter (Python side for complex comma-separated logic)
+    target_occupations = scheme.get_occupation_targets()
+    if target_occupations:
+        all_profiles = list(queryset)
+        eligible_profiles = [
+            p for p in all_profiles 
+            if (p.occupation or '').strip().lower() in target_occupations
+        ]
+        return [p.user for p in eligible_profiles]
+        
+    return [p.user for p in queryset]
+
+
 # ── Views ───────────────────────────────────────────────────────────────────
+
+def is_ward_member(user):
+    return user.is_authenticated and (user.role == 'ward_member' or user.role == 'panchayath_admin')
+
+@user_passes_test(is_ward_member, login_url='/accounts/login/')
+def create_scheme(request):
+    """
+    Ward Member view to create a new Government Scheme.
+    Includes AI-assisted beneficiary matching preview.
+    """
+    if request.method == 'POST':
+        form = SchemeForm(request.POST)
+        if form.is_valid():
+            scheme = form.save(commit=False)
+            scheme.created_by = request.user
+            scheme.save()
+            messages.success(request, f'Scheme "{scheme.name}" has been created successfully.')
+            return redirect('create_scheme')
+    else:
+        form = SchemeForm()
+        
+    # AI Matching Preview: If there's enough data in the form (mocked for now or based on defaults)
+    # For a new form, we can show matches for the default values or a specific selection
+    preview_scheme = Scheme(
+        min_age=18, max_age=60, max_income=Decimal('50000'), gender_target='A'
+    )
+    eligible_users = get_eligible_beneficiaries(preview_scheme)
+    
+    # List of schemes created by this user
+    schemes = Scheme.objects.filter(created_by=request.user).order_by('-created_at')
+    
+    context = {
+        'form': form,
+        'eligible_users': eligible_users,
+        'eligible_count': len(eligible_users),
+        'schemes': schemes,
+    }
+    return render(request, 'schemes/create_scheme.html', context)
+
+@user_passes_test(is_ward_member, login_url='/accounts/login/')
+def notify_citizens(request, scheme_id):
+    """
+    Sends alerts to all citizens eligible for the specified scheme.
+    """
+    try:
+        scheme = Scheme.objects.get(id=scheme_id)
+        eligible_users = get_eligible_beneficiaries(scheme)
+        
+        # Mock Notification Logic
+        for user in eligible_users:
+            # print(f"NOTIFY: Sent alert to {user.username} for scheme {scheme.name}")
+            pass
+            
+        messages.success(request, f'Notifications sent to {len(eligible_users)} eligible citizens.')
+    except Scheme.DoesNotExist:
+        messages.error(request, 'Scheme not found.')
+        
+    return redirect('create_scheme')
 
 @login_required
 def match_schemes(request):

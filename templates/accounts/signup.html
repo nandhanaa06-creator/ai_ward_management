@@ -1,17 +1,269 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card p-4">
-            <h3 class="text-center mb-4">Citizen Registration</h3>
-            <form method="post">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit" class="btn btn-primary w-100">Register</button>
-            </form>
-            <p class="mt-3 text-center">Already have an account? <a href="{% url 'login' %}">Login here</a></p>
-        </div>
+<!-- Modern Typography -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --glass-frost: blur(25px);
+        --electric-blue: #3b82f6;
+        --deep-slate: #020617;
+        --text-bright: #f8fafc;
+        --text-dim: #94a3b8;
+    }
+
+    /* Background & Layout Override */
+    .main-wrapper {
+        background: radial-gradient(circle at 0% 0%, #1e3a8a 0%, #0f172a 40%, #020617 100%) !important;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .main-wrapper::after {
+        content: '';
+        position: absolute;
+        bottom: -20%;
+        left: -10%;
+        width: 50%;
+        height: 50%;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .content-area {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem !important;
+        min-height: calc(100vh - 70px);
+    }
+
+    /* High-Fidelity Glassmorphism Card */
+    .registration-portal {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-frost);
+        -webkit-backdrop-filter: var(--glass-frost);
+        border: 1px solid var(--glass-border);
+        border-radius: 40px;
+        padding: 4rem;
+        width: 100%;
+        max-width: 600px;
+        box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.7);
+        color: var(--text-bright);
+        position: relative;
+        z-index: 10;
+        animation: slideUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(40px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .registration-portal::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 40%);
+        border-radius: 40px;
+        pointer-events: none;
+    }
+
+    .portal-header h2 {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 800;
+        font-size: 2.25rem;
+        letter-spacing: -1.5px;
+        margin-bottom: 0.75rem;
+        text-align: center;
+        color: #fff;
+        text-shadow: 0 0 20px rgba(255,255,255,0.1);
+    }
+
+    .portal-header p {
+        text-align: center;
+        color: var(--text-dim);
+        font-size: 1rem;
+        margin-bottom: 3.5rem;
+        font-weight: 400;
+    }
+
+    /* Form Design: Minimalist & Tactile */
+    .form-group {
+        position: relative;
+        margin-bottom: 2rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+        padding-left: 0.25rem;
+        transition: color 0.3s;
+    }
+
+    .registration-portal input, 
+    .registration-portal select, 
+    .registration-portal textarea {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.01) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 16px !important;
+        padding: 14px 20px !important;
+        color: #f8fafc !important;
+        font-size: 1rem !important;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        outline: none !important;
+    }
+
+    .registration-portal input:focus,
+    .registration-portal select:focus {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border-color: rgba(59, 130, 246, 0.5) !important;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.2) !important;
+        transform: scale(1.01);
+    }
+
+    .registration-portal .help-text {
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-top: 0.6rem;
+        padding-left: 0.25rem;
+        line-height: 1.4;
+    }
+
+    /* Primary Action */
+    .btn-portal {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: white;
+        font-weight: 700;
+        padding: 1.1rem;
+        border-radius: 18px;
+        width: 100%;
+        margin-top: 1.5rem;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: all 0.4s;
+        box-shadow: 0 15px 30px -10px rgba(37, 99, 235, 0.5);
+        cursor: pointer;
+    }
+
+    .btn-portal:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.7);
+        filter: brightness(1.1);
+    }
+
+    /* Sidebar Overrides for Signup Portal */
+    .sidebar-wrapper {
+        background: #020617 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .nav-item-link i {
+        color: #3b82f6 !important;
+        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+        opacity: 1 !important;
+    }
+
+    .sidebar-brand-icon {
+        background: linear-gradient(135deg, #1d4ed8, #3b82f6) !important;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    }
+
+    /* Footer Navigation */
+    .portal-footer {
+        text-align: center;
+        margin-top: 2.5rem;
+        font-size: 0.9rem;
+        color: var(--text-dim);
+    }
+
+    .portal-footer a {
+        color: var(--electric-blue);
+        text-decoration: none;
+        font-weight: 700;
+        transition: all 0.3s;
+        position: relative;
+    }
+
+    .portal-footer a::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--electric-blue);
+        transition: width 0.3s;
+    }
+
+    .portal-footer a:hover::after {
+        width: 100%;
+    }
+
+    .portal-footer a:hover {
+        color: #60a5fa;
+        text-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Error Styling */
+    .error-msg {
+        color: #ef4444;
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        background: rgba(239, 68, 68, 0.1);
+        padding: 8px 12px;
+        border-radius: 8px;
+        border-left: 3px solid #ef4444;
+    }
+</style>
+
+<div class="registration-portal">
+    <div class="portal-header">
+        <h2>Initiate Identity</h2>
+        <p>Register your citizen node within the Smart City grid.</p>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                    <div class="help-text">{{ field.help_text|safe }}</div>
+                {% endif %}
+                {% if field.errors %}
+                    {% for error in field.errors %}
+                        <div class="error-msg">
+                            <i class="bi bi-exclamation-circle me-1"></i> {{ error|striptags }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="btn-portal">Establish Registration</button>
+    </form>
+
+    <div class="portal-footer">
+        Existing Node? <a href="{% url 'login' %}">Decrypt Identity</a>
     </div>
 </div>
 {% endblock %}

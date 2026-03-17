@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load surveys_tags %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'manage_surveys' %}" class="text-decoration-none">Data Collection Hub</a></li>
+            <li class="breadcrumb-item active">Submissions: {{ survey.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold text-primary mb-1">{{ survey.title }}</h2>
+            <p class="text-muted small mb-0">Reviewing {{ submissions.count }} total responses collected starting from {{ survey.created_at|date:"M d, Y" }}.</p>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-sm-0">
+            <button class="btn btn-outline-primary btn-sm fw-bold px-3">
+                <i class="bi bi-download me-2"></i>EXPORT CSV
+            </button>
+            <button class="btn btn-outline-secondary btn-sm fw-bold px-3">
+                <i class="bi bi-printer me-2"></i>PRINT
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm" style="border-radius: 1.25rem; overflow: hidden;">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="text-uppercase x-small fw-bold text-muted border-top-0">
+                            <th class="ps-4">Submitted On</th>
+                            {% for header in headers %}
+                            <th>{{ header }}</th>
+                            {% endfor %}
+                            <th class="pe-4 text-center">Docs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in submissions %}
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-bold d-block">{{ submission.submitted_at|date:"M d, Y" }}</span>
+                                <span class="text-muted small">{{ submission.submitted_at|date:"H:i" }}</span>
+                            </td>
+                            
+                            {% for header in headers %}
+                            <td>
+                                {% with value=submission.data|dict_get:header %}
+                                    {% if value == "True" %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2">YES</span>
+                                    {% elif value == "False" %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2">NO</span>
+                                    {% elif value %}
+                                        {{ value|truncatechars:100 }}
+                                    {% else %}
+                                        <span class="text-muted opacity-50">—</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            {% endfor %}
+
+                            <td class="pe-4 text-center">
+                                {% if submission.files.exists %}
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light border text-primary fw-bold px-2 py-1" data-bs-toggle="dropdown">
+                                        <i class="bi bi-file-earmark-arrow-down-fill me-1"></i> {{ submission.files.count }}
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="min-width: 250px;">
+                                        <li class="dropdown-header x-small text-uppercase fw-bold pb-2 border-bottom mb-2">Attached Documents</li>
+                                        {% for file in submission.files.all %}
+                                        <li>
+                                            <a class="dropdown-item rounded-2 d-flex align-items-center gap-2 py-2" href="{{ file.file.url }}" target="_blank">
+                                                <i class="bi bi-file-earmark-text text-primary fs-5"></i>
+                                                <div class="overflow-hidden">
+                                                    <div class="fw-bold small text-truncate">{{ file.field_label }}</div>
+                                                    <div class="x-small text-muted">{{ file.file.name|split:"/"|last }}</div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% else %}
+                                <span class="text-muted opacity-25"><i class="bi bi-file-earmark-slash"></i></span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{{ headers|length|add:2 }}" class="text-center py-5">
+                                <div class="opacity-25 mb-3"><i class="bi bi-table fs-1"></i></div>
+                                <h5 class="text-muted">No submissions yet.</h5>
+                                <p class="text-muted small">Once citizens fill out the form at the public URL, their data will appear here.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .x-small { font-size: 0.65rem; }
+    .breadcrumb-item + .breadcrumb-item::before { content: "›"; }
+    th { font-size: 0.7rem; color: #6b7280; letter-spacing: 0.05em; padding-top: 1rem; padding-bottom: 1rem; }
+    td { padding-top: 1rem; padding-bottom: 1rem; font-size: 0.85rem; }
+    .dropdown-item:hover { background-color: rgba(26, 35, 126, 0.05); }
+</style>
+{% endblock %}

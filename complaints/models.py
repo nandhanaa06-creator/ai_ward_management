@@ -34,13 +34,27 @@ class Complaint(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     is_duplicate = models.BooleanField(default=False)
 
-    # NEW: Workflow Tracking & Proof
+    # Workflow Tracking & Proof
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     assigned_worker = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.SET_NULL, 
         null=True, blank=True, 
         related_name='assigned_tasks'
+    )
+    
+    # AI Duplicate & Merge Fields
+    parent_complaint = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, 
+        null=True, blank=True, 
+        related_name='merged_duplicates',
+        help_text="If this is a duplicate, link to the master complaint"
+    )
+    potential_duplicate_of = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='potential_matches',
+        help_text="AI-flagged candidate for merging"
     )
     # Allows workers to upload a "fixed" photo
     resolution_image = models.ImageField(upload_to='resolutions/', null=True, blank=True)
@@ -63,3 +77,14 @@ class ComplaintMessage(models.Model):
 
     def __str__(self):
         return f"Message by {self.sender.username} on {self.complaint.id}"
+
+class ComplaintStatusHistory(models.Model):
+    complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name='status_history')
+    new_status = models.CharField(max_length=20, choices=Complaint.STATUS_CHOICES)
+    description = models.TextField(blank=True, null=True, help_text="Resolution notes or update reason")
+    proof_image = models.ImageField(upload_to='resolution_proofs/', null=True, blank=True)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.complaint.id} moved to {self.new_status} by {self.actor.username}"

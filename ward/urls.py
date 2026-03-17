@@ -26,6 +26,7 @@ urlpatterns = [
     path('complaints/', include('complaints.urls')),
     path('schemes/', include('schemes.urls')),
     path('governance/', include('governance.urls')),
+    path('surveys/', include('surveys.urls')),
 
     path('', lambda request: redirect('accounts/login/', permanent=False)),
 

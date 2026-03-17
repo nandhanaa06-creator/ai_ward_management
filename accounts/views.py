@@ -80,6 +80,9 @@ def _ward_member_context(user):
     assigned_count    = ward_complaints.filter(status='assigned').count()
     rejected_count    = ward_complaints.filter(status='rejected').count()
 
+    # ── 7. Potential Duplicates (AI Flagged) ──────────────────────
+    flagged_duplicates = ward_complaints.filter(is_duplicate=True, parent_complaint__isnull=True).order_by('-created_at')
+
     return {
         'ward':               ward,
         'ward_name':          str(ward) if ward else 'No Ward Assigned',
@@ -106,19 +109,49 @@ def _ward_member_context(user):
         'upcoming_meetings':  upcoming_meetings,
         'priority_alerts':    priority_alerts,
         'priority_alert_count': priority_alerts.count(),
+        'flagged_duplicates': flagged_duplicates,
+        'flagged_duplicate_count': flagged_duplicates.count(),
 
-        # Colours for progress bar tier
-        'resolution_color': (
-            'success' if resolution_rate >= 70
-            else 'warning' if resolution_rate >= 40
-            else 'danger'
-        ),
-        'satisfaction_color': (
-            'success' if satisfaction_index >= 4
-            else 'warning' if satisfaction_index >= 2.5
-            else 'danger'
-        ),
+        # ── 8. Ward Health & Predictive Stress ───────────────────────
+        # Stress Score = (Unresolved / Workers) + (Avg Days to Resolve)
+        'unresolved_count': (pending_complaints.count() + in_progress_count + assigned_count),
+        'worker_count': User.objects.filter(ward=ward, role='field_worker').count() or 1,
     }
+    # ── 9. Calculation Logic ───────────────────────────────────────
+    unresolved = context['unresolved_count']
+    workers = context['worker_count']
+    
+    # Average Days to Resolve (Python-side for duration flexibility)
+    resolve_durations = []
+    for c in resolved_complaints:
+        dur = (c.updated_at - c.created_at).total_seconds() / 86400.0
+        resolve_durations.append(dur)
+    
+    avg_days = sum(resolve_durations) / len(resolve_durations) if resolve_durations else 1.5
+    context['avg_resolve_days'] = round(avg_days, 1)
+    
+    # Stress Score Calculation
+    stress_score = (unresolved / workers) + avg_days
+    context['stress_score'] = round(stress_score, 1)
+    
+    # Predicted Resolution Time (Hours for Current Week)
+    context['predicted_res_time'] = round((unresolved * avg_days * 24) / workers)
+
+    # ── 10. Heatmap Data (Predictive) ──────────────────────────────
+    context['heatmap_data'] = [
+        {
+            'lat': round(float(c['latitude']), 4), 
+            'lng': round(float(c['longitude']), 4), 
+            'count': 1,
+        } for c in ward_complaints.filter(status__in=['pending', 'assigned', 'in_progress']).values('latitude', 'longitude') if c['latitude'] and c['longitude']
+    ]
+
+    # Colours for UI indicators
+    context['resolution_color'] = 'success' if resolution_rate >= 70 else 'warning' if resolution_rate >= 40 else 'danger'
+    context['satisfaction_color'] = 'success' if satisfaction_index >= 4 else 'warning' if satisfaction_index >= 2.5 else 'danger'
+    context['stress_color'] = 'danger' if stress_score > 8 else 'warning' if stress_score > 5 else 'success'
+
+    return context
 
 
 # ── Views ────────────────────────────────────────────────────────────────────
@@ -174,12 +207,138 @@ def dashboard(request):
     # Fallback
     return render(request, 'accounts/citizen_dashboard.html', {})
 
-from datetime import timedelta
+from datetime import timedelta, date
+import random
+from django.db.models import Count, Q, Avg
+from django.utils import timezone
 
 from django.contrib.auth.decorators import user_passes_test
 
 def is_admin(user):
     return user.is_authenticated and (user.role == 'panchayath_admin' or user.is_superuser)
+
+# ---------------------------------------------------------------------------
+# IOT & SMART INFRASTRUCTURE UTILITIES
+# ---------------------------------------------------------------------------
+
+def get_iot_telemetry(admin_user):
+    """
+    Simulates real-time IoT sensor data and triggers automatic complaints.
+    """
+    # Simulate values 20% - 90%
+    water_level = random.randint(20, 95) # Slightly higher upper bound to favor demo triggers
+    waste_level = random.randint(20, 95)
+    
+    telemetry = {
+        'water': {'level': water_level, 'status': 'Stable', 'color': 'cyan'},
+        'waste': {'level': waste_level, 'status': 'Stable', 'color': 'cyan'}
+    }
+    
+    # Threshold check (> 85%)
+    # We assign to a default ward or the first ward for simulation purposes
+    target_ward = Ward.objects.first()
+    
+    if water_level > 85:
+        telemetry['water']['status'] = 'CRITICAL'
+        telemetry['water']['color'] = 'danger'
+        # Check if an auto-complaint already exists for this in the last hour to prevent spam
+        recent_exists = Complaint.objects.filter(
+            title__contains="IOT_AUTO_SIGNAL: Water Tank Overflow",
+            created_at__gte=timezone.now() - timedelta(hours=1)
+        ).exists()
+        
+        if not recent_exists:
+            Complaint.objects.create(
+                user=admin_user,
+                ward=target_ward,
+                title="[IOT_AUTO_SIGNAL] Water Tank Overflow Danger",
+                description=f"Automated Alert: Central Water Tank Level at {water_level}%. Immediate intervention required to prevent overflow.",
+                category="Public Works",
+                priority="high",
+                status="pending"
+            )
+
+    if waste_level > 85:
+        telemetry['waste']['status'] = 'CRITICAL'
+        telemetry['waste']['color'] = 'danger'
+        recent_exists = Complaint.objects.filter(
+            title__contains="IOT_AUTO_SIGNAL: Waste Bin Full",
+            created_at__gte=timezone.now() - timedelta(hours=1)
+        ).exists()
+        
+        if not recent_exists:
+            Complaint.objects.create(
+                user=admin_user,
+                ward=target_ward,
+                title="[IOT_AUTO_SIGNAL] Waste Bin Capacity Breach",
+                description=f"Automated Alert: Smart Waste Bin at Zone A-1 is at {waste_level}% capacity. Routing sanitation crew required.",
+                category="Sanitation",
+                priority="high",
+                status="pending"
+            )
+            
+    return telemetry
+
+# ---------------------------------------------------------------------------
+# PREDICTIVE GOVERNANCE UTILITIES
+# ---------------------------------------------------------------------------
+
+def get_predictive_analytics(wards, total_days=90, forecast_days=30):
+    """
+    Calculates Ward Stress Scores and generates a 30-day forecast.
+    """
+    # 1. Ward Stress Scoring
+    risk_wards = []
+    for ward in wards:
+        # Get active workers in this ward
+        active_workers = User.objects.filter(role='field_worker', ward=ward).count()
+        
+        # Stress Score = Pending / (Active Workers + 1)
+        score = ward.pending_count / (active_workers + 0.5) # using 0.5 to avoid heavy bias if 0 workers
+        
+        risk_level = "Normal"
+        risk_color = "success"
+        if score > 8:
+            risk_level = "High Risk"
+            risk_color = "danger"
+        elif score > 4:
+            risk_level = "Elevated"
+            risk_color = "warning"
+            
+        risk_wards.append({
+            'ward': ward,
+            'score': round(score, 1),
+            'risk_level': risk_level,
+            'risk_color': risk_color,
+            'active_workers': active_workers
+        })
+
+    # 2. Daily Average Forecast
+    # Calculate average complaints per day over last 90 days
+    since_date = timezone.now() - timedelta(days=total_days)
+    historical_complaints = Complaint.objects.filter(created_at__gte=since_date)
+    
+    total_count = historical_complaints.count()
+    daily_avg = total_count / total_days if total_days > 0 else 0
+    
+    # Generate labels (next 30 days) and projected cumulative growth
+    labels = []
+    forecast_data = []
+    
+    current_total = Complaint.objects.count()
+    for i in range(1, forecast_days + 1):
+        future_date = date.today() + timedelta(days=i)
+        labels.append(future_date.strftime('%d %b'))
+        # Projected linear growth based on historical daily average
+        projected_val = current_total + (daily_avg * i)
+        forecast_data.append(round(projected_val))
+
+    return {
+        'risk_wards': risk_wards,
+        'forecast_labels': labels,
+        'forecast_data': forecast_data,
+        'daily_avg': round(daily_avg, 2)
+    }
 
 @user_passes_test(is_admin, login_url='/accounts/login/')
 def admin_dashboard(request):
@@ -229,7 +388,19 @@ def admin_dashboard(request):
     ).order_by('ward_number')
     
     hotspot_ward = wards.order_by('-pending_count').first()
+    
+    # 5. Field Worker Lifecycle Telemetry
+    workers = User.objects.filter(role='field_worker').annotate(
+        task_count_annotation=Count('assigned_tasks', filter=Q(assigned_tasks__status__in=['assigned', 'in_progress'])),
+        resolved_tasks=Count('assigned_tasks', filter=Q(assigned_tasks__status='resolved'))
+    )
 
+
+    # 6. Predictive Governance Data
+    predictive_data = get_predictive_analytics(wards)
+    
+    # 7. IoT Telemetry simulation
+    iot_data = get_iot_telemetry(request.user)
 
     context = {
         'complaints': complaints,
@@ -244,6 +415,10 @@ def admin_dashboard(request):
         'resolved_rate': resolved_rate,
         'hotspot_ward': hotspot_ward,
         'wards': wards,
+        'workers': workers,
+        
+        'predictive': predictive_data,
+        'iot': iot_data,
         
         # Current active filters to repopulate UI
         'current_status': status_filter,

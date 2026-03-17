@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'meeting_list' %}" class="text-decoration-none">Grama Sabha</a></li>
+            <li class="breadcrumb-item active">{{ meeting.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Main Content (Agenda & Minutes) -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 1.25rem;">
+                <div class="card-body p-4 p-md-5">
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <div>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle mb-2 px-3 py-2 fw-bold">
+                                {% if is_past %}PAST MEETING{% else %}UPCOMING MEETING{% endif %}
+                            </span>
+                            <h2 class="fw-black text-dark mb-1">{{ meeting.title }}</h2>
+                            <p class="text-muted"><i class="bi bi-geo-alt-fill me-1"></i> {{ meeting.location }}</p>
+                        </div>
+                        {% if meeting.agenda_pdf %}
+                        <a href="{{ meeting.agenda_pdf.url }}" class="btn btn-outline-primary fw-bold" target="_blank">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>VIEW AGENDA
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-5">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3 text-primary">Context & Description</h5>
+                        <div class="text-dark" style="line-height: 1.8;">
+                            {{ meeting.description|linebreaks }}
+                        </div>
+                    </div>
+
+                    {% if meeting.minutes_summary %}
+                    <div class="bg-light rounded-4 p-4 border mb-4 border-success-subtle shadow-sm">
+                        <h5 class="fw-bold text-dark mb-3 d-flex justify-content-between">
+                            <span><i class="bi bi-journal-check me-2 text-success"></i> Meeting Outcomes & Decisions</span>
+                            {% if meeting.minutes_pdf %}
+                            <a href="{{ meeting.minutes_pdf.url }}" class="text-success text-decoration-none small fw-bold" target="_blank">
+                                <i class="bi bi-file-earmark-pdf"></i> OFFICIAL_MINUTES.PDF
+                            </a>
+                            {% endif %}
+                        </h5>
+                        <div class="text-secondary small mb-0" style="line-height: 1.8; font-size: 0.95rem;">
+                            {{ meeting.minutes_summary|linebreaks }}
+                        </div>
+                    </div>
+                    {% elif is_past and user.role == 'ward_member' %}
+                    <div class="alert alert-warning border-warning border-dashed d-flex align-items-center gap-3 py-4" style="border-style: dashed; background: #fffbeb;">
+                        <i class="bi bi-info-circle-fill fs-2 text-warning"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1">Meeting Concluded</h6>
+                            <p class="mb-2 small">This meeting has finished. Please publish the minutes to keep citizens informed.</p>
+                            <a href="{% url 'publish_minutes' meeting.pk %}" class="btn btn-warning btn-sm fw-bold">PUBLISH MINUTES NOW</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Public Feedback Section (Section 4.5) -->
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 1.25rem;">
+                <div class="card-body p-4 p-md-5">
+                    <h5 class="fw-bold text-dark mb-4 d-flex align-items-center gap-2">
+                        <i class="bi bi-chat-left-dots-fill text-primary"></i> 
+                        Public Feedback & Oversight
+                        <span class="badge bg-light text-primary border rounded-pill small ms-2">{{ feedbacks.count }}</span>
+                    </h5>
+
+                    <!-- Feedback Form -->
+                    <div class="bg-primary-subtle rounded-4 p-4 mb-5 border border-primary-subtle">
+                        <h6 class="fw-bold text-primary mb-3">Ask a Question or Post a Comment</h6>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="submit_feedback" value="1">
+                            {{ feedback_form.comment }}
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="form-check">
+                                    {{ feedback_form.is_question }}
+                                    <label class="form-check-label small text-secondary" for="{{ feedback_form.is_question.id_for_label }}">
+                                        Mark as a Question for the Ward Member
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-primary fw-bold px-4 rounded-pill">
+                                    POST COMMENT
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Feedback Thread -->
+                    <div class="feedback-thread">
+                        {% for feedback in feedbacks %}
+                        <div class="feedback-item {% if not forloop.last %}border-bottom{% endif %} py-4">
+                            <div class="d-flex gap-3">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; font-size: 0.9rem;">
+                                        {{ feedback.user.username|make_list|first|upper }}
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <h6 class="mb-0 fw-bold text-dark">
+                                            {{ feedback.user.username }}
+                                            {% if feedback.user.role == 'ward_member' %}
+                                            <span class="badge bg-warning text-dark x-small ms-1">WARD MEMBER</span>
+                                            {% endif %}
+                                        </h6>
+                                        <span class="text-muted small">{{ feedback.created_at|timesince }} ago</span>
+                                    </div>
+                                    {% if feedback.is_question %}
+                                    <div class="badge bg-danger-subtle text-danger border border-danger-subtle x-small mb-2 px-2 py-1">
+                                        <i class="bi bi-question-circle-fill me-1"></i> QUESTION
+                                    </div>
+                                    {% endif %}
+                                    <p class="text-secondary small mb-0" style="line-height: 1.6;">
+                                        {{ feedback.comment }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-chat-square-quote fs-1 text-muted opacity-25 d-block mb-3"></i>
+                            <p class="text-muted small">No community feedback yet. Be the first to start the conversation!</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar (RSVP & Details) -->
+        <div class="col-lg-4">
+            <!-- RSVP Card -->
+            {% if not is_past %}
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 1.25rem; background: linear-gradient(135deg, #1a237e, #3142ab); color: #fff;">
+                <div class="card-body p-4 text-center">
+                    <h5 class="fw-bold mb-4">Are you attending?</h5>
+                    <div class="d-grid gap-3">
+                        <form action="{% url 'rsvp_meeting' meeting.pk %}" method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="attending">
+                            <button type="submit" class="btn w-100 py-2 fw-bold {% if user_rsvp == 'attending' %}btn-light{% else %}btn-outline-light{% endif %}">
+                                <i class="bi bi-check-lg me-2"></i>YES, I'M ATTENDING
+                            </button>
+                        </form>
+                        <form action="{% url 'rsvp_meeting' meeting.pk %}" method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="not_attending">
+                            <button type="submit" class="btn w-100 py-2 fw-bold {% if user_rsvp == 'not_attending' %}btn-light{% else %}btn-outline-light{% endif %}">
+                                <i class="bi bi-x-lg me-2"></i>NO, CAN'T MAKE IT
+                            </button>
+                        </form>
+                    </div>
+                    {% if user_rsvp %}
+                    <p class="mt-4 mb-0 small opacity-75">Your current status: <strong>{{ user_rsvp|title }}</strong></p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Stats Card -->
+            <div class="card border-0 shadow-sm" style="border-radius: 1.25rem;">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold text-muted small text-uppercase mb-4">Meeting Logistics</h6>
+                    
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="bg-primary-subtle text-primary rounded-3 p-3">
+                            <i class="bi bi-calendar3 fs-4"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">{{ meeting.meeting_date|date:"D, M d, Y" }}</div>
+                            <div class="text-muted small">Date of Event</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="bg-danger-subtle text-danger rounded-3 p-3">
+                            <i class="bi bi-clock fs-4"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">{{ meeting.meeting_date|date:"H:i A" }}</div>
+                            <div class="text-muted small">Starting Time</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top">
+                        <div class="text-center">
+                            <div class="h4 fw-bold mb-0">{{ attending_count }}</div>
+                            <div class="x-small text-muted fw-bold">CONFIRMED</div>
+                        </div>
+                        <div class="text-center border-start ps-4">
+                            <div class="h4 fw-bold mb-0 text-primary">{{ meeting.ward.ward_name }}</div>
+                            <div class="x-small text-muted fw-bold">LOCATION</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .fw-black { font-weight: 800; }
+    .x-small { font-size: 0.65rem; }
+    .border-dashed { border-width: 2px !important; }
+</style>
+{% endblock %}

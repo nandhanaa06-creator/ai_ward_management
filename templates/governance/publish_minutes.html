@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'meeting_list' %}" class="text-decoration-none">Grama Sabha</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'meeting_detail' meeting.pk %}" class="text-decoration-none">{{ meeting.title }}</a></li>
+            <li class="breadcrumb-item active">Publish Minutes</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm" style="border-radius: 1.25rem;">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="fw-bold mb-0 text-primary">
+                        <i class="bi bi-journal-plus me-2"></i>Publish Meeting Minutes
+                    </h5>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    <p class="text-muted small mb-4">Finalize the meeting record by providing an executive summary and uploading the official minutes document.</p>
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Summary of Outcomes</label>
+                            {{ form.minutes_summary }}
+                            <div class="form-text mt-2 small text-muted">Briefly describe the key decisions, resolutions, and action items discussed.</div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Official Minutes (PDF/Doc)</label>
+                            {{ form.minutes_pdf }}
+                            <div class="form-text mt-2 small text-muted">Upload the scanned or digital copy of the committee-signed minutes.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary py-3 fw-bold shadow-sm">
+                                <i class="bi bi-cloud-arrow-up-fill me-2"></i>PUBLISH TO CITIZENS
+                            </button>
+                            <a href="{% url 'meeting_detail' meeting.pk %}" class="btn btn-light border py-3 fw-bold text-muted">CANCEL & RETURN</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

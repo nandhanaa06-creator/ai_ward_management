@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'meeting_list' %}" class="text-decoration-none">Grama Sabha</a></li>
+            <li class="breadcrumb-item active">Schedule New Meeting</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm" style="border-radius: 1.25rem;">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="fw-bold mb-0 text-primary">
+                        <i class="bi bi-calendar-event me-2"></i>Schedule Ward Meeting
+                    </h5>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Meeting Title</label>
+                                {{ form.title }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Agenda / Description</label>
+                                {{ form.description }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Date & Time</label>
+                                {{ form.meeting_date }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Venue / Location</label>
+                                {{ form.location }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Initial Agenda (PDF)</label>
+                                {{ form.agenda_pdf }}
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary py-3 fw-bold shadow-sm">
+                                <i class="bi bi-check-circle-fill me-2"></i>CREATE MEETING & NOTIFY RESIDENTS
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

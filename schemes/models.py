@@ -11,6 +11,7 @@ class Scheme(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     benefits = models.TextField()
+    created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_schemes')
 
     # ── Eligibility Criteria ────────────────────────────────────────
     min_age = models.IntegerField(default=0)

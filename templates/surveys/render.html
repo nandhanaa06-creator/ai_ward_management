@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            
+            <!-- Branding/Agency Logo Area (Simulated) -->
+            <div class="text-center mb-5">
+                <div class="d-inline-flex align-items-center justify-content-center bg-primary rounded-circle mb-3 shadow-glow" style="width: 64px; height: 64px; background: linear-gradient(135deg, #1a237e, #3949ab) !important;">
+                    <i class="bi bi-shield-check text-white fs-2"></i>
+                </div>
+                <h2 class="fw-black text-dark mb-1">{{ survey.title }}</h2>
+                <p class="text-muted small px-lg-5">{{ survey.description|default:"Official data collection portal for ward administration." }}</p>
+            </div>
+
+            <div class="card border-0 shadow-lg submission-card" style="border-radius: 1.5rem; overflow: hidden;">
+                <!-- Decorative Progress Bar -->
+                <div class="progress rounded-0" style="height: 6px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: 100%; opacity: 0.8;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" enctype="multipart/form-data" id="submissionForm">
+                        {% csrf_token %}
+                        
+                        {% for field in form %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-dark mb-2">
+                                {{ field.label }}
+                                {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            
+                            {{ field }}
+                            
+                            {% if field.help_text %}
+                            <div class="form-text mt-2 small text-muted">{{ field.help_text }}</div>
+                            {% endif %}
+                            
+                            {% if field.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ field.errors|first }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+
+                        <div class="d-grid mt-5">
+                            <button type="submit" class="btn btn-primary py-3 fw-black shadow-sm grow-hover">
+                                <i class="bi bi-send-fill me-2"></i>SUBMIT APPLICATION
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <p class="x-small text-muted mb-0">
+                                <i class="bi bi-lock-fill me-1"></i> Your data is encrypted and stored securely by Panchayath Admin.
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer for Citizen context -->
+            <div class="text-center mt-5 text-muted small opacity-50">
+                &copy; 2024 Digital Ward Command Centre | Privacy Policy | Help Desk
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body { background-color: #f8fafc; }
+    .submission-card { transition: transform 0.3s ease; }
+    .shadow-glow { box-shadow: 0 0 20px rgba(26, 35, 126, 0.3); }
+    .grow-hover { transition: all 0.2s ease; }
+    .grow-hover:hover { transform: scale(1.02); filter: brightness(1.1); }
+    .form-control, .form-select {
+        border: 2px solid #e2e8f0;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #3949ab;
+        box-shadow: 0 0 0 4px rgba(57, 73, 171, 0.1);
+    }
+    .form-check-input:checked { background-color: #3949ab; border-color: #3949ab; }
+    .fw-black { font-weight: 800; }
+    .x-small { font-size: 0.7rem; }
+</style>
+{% endblock %}

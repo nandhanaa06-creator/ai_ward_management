@@ -339,24 +339,43 @@
 
     <!-- NEXT GRAMA SABHA WIDGET (4 Columns) -->
     <div class="bento-card bento-side shadow-sm">
-        <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-calendar-event me-2 text-danger"></i> Upcoming Ward Meetings
-        </h5>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-calendar-event me-2 text-danger"></i> Ward Meetings
+            </h5>
+            <a href="{% url 'meeting_list' %}" class="btn btn-link btn-sm p-0 text-decoration-none fw-bold">View All</a>
+        </div>
 
         <div class="meeting-list flex-grow-1">
             {% for meeting in upcoming_meetings %}
-            <div class="meeting-item">
-                <div class="meeting-date">
-                    <div class="meeting-month">{{ meeting.meeting_date|date:"M" }}</div>
-                    <div class="meeting-day">{{ meeting.meeting_date|date:"d" }}</div>
+            <div class="meeting-item flex-column align-items-stretch">
+                <div class="d-flex gap-3 mb-3">
+                    <div class="meeting-date">
+                        <div class="meeting-month">{{ meeting.meeting_date|date:"M" }}</div>
+                        <div class="meeting-day">{{ meeting.meeting_date|date:"d" }}</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold mb-1 text-dark fs-sm" style="font-size: 0.95rem;">{{ meeting.title }}</h6>
+                        <div class="text-secondary small d-flex align-items-center gap-1 mb-1">
+                            <i class="bi bi-clock"></i> {{ meeting.meeting_date|date:"H:i A" }}
+                        </div>
+                        <div class="text-secondary small d-flex align-items-center gap-1">
+                            <i class="bi bi-geo-alt"></i> {{ meeting.location }}
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <h6 class="fw-bold mb-1 text-dark fs-sm" style="font-size: 0.95rem;">{{ meeting.title }}</h6>
-                    <div class="text-secondary small d-flex align-items-center gap-1 mb-1">
-                        <i class="bi bi-clock"></i> {{ meeting.meeting_date|date:"H:i A" }}
-                    </div>
-                    <div class="text-secondary small d-flex align-items-center gap-1">
-                        <i class="bi bi-geo-alt"></i> {{ meeting.location }}
-                    </div>
+                
+                <div class="d-flex gap-2">
+                    <form action="{% url 'rsvp_meeting' meeting.pk %}" method="POST" class="flex-grow-1">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="attending">
+                        <button type="submit" class="btn btn-sm w-100 fw-bold {% if meeting.user_rsvp == 'attending' %}btn-success{% else %}btn-outline-success{% endif %}">
+                            <i class="bi bi-check-lg me-1"></i> ATTENDING
+                        </button>
+                    </form>
+                    <a href="{% url 'meeting_detail' meeting.pk %}" class="btn btn-sm btn-light border fw-bold text-muted px-3">
+                        <i class="bi bi-info-circle"></i>
+                    </a>
                 </div>
             </div>
             {% empty %}

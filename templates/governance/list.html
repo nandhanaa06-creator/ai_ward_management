@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary"><i class="bi bi-people-fill me-2"></i>Grama Sabha & Ward Meetings</h2>
+            <p class="text-muted mb-0">Stay engaged with local governance and track ward-level decisions.</p>
+        </div>
+        {% if user.role == 'ward_member' or user.role == 'panchayath_admin' %}
+        <a href="{% url 'schedule_meeting' %}" class="btn btn-primary d-flex align-items-center gap-2 px-4 shadow-sm">
+            <i class="bi bi-calendar-plus"></i>
+            <span class="fw-bold">SCHEDULE MEETING</span>
+        </a>
+        {% endif %}
+    </div>
+
+    {% if no_ward %}
+    <div class="alert alert-info border-info border-dashed py-5 text-center" style="border-radius: 1.25rem;">
+        <i class="bi bi-geo fs-1 d-block mb-3 opacity-50"></i>
+        <h5 class="fw-bold">No Ward Assigned</h5>
+        <p class="mb-4">Please update your profile to select your ward and see relevant meetings.</p>
+        <a href="{% url 'update_profile' %}" class="btn btn-primary px-5 fw-bold">UPDATE PROFILE</a>
+    </div>
+    {% else %}
+    
+    <!-- Upcoming Sessions -->
+    <div class="mb-5">
+        <h4 class="fw-bold text-dark mb-4"><i class="bi bi-calendar-event me-2 text-primary"></i>Upcoming Sessions</h4>
+        <div class="row g-4">
+            {% for meeting in upcoming_meetings %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm bento-card overflow-hidden" style="border-radius: 1.25rem;">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="bg-primary-subtle rounded-3 text-center p-2 border border-primary-subtle" style="width: 50px;">
+                                <div class="text-primary x-small fw-black text-uppercase">{{ meeting.meeting_date|date:"M" }}</div>
+                                <div class="h4 fw-black mb-0 text-primary">{{ meeting.meeting_date|date:"d" }}</div>
+                            </div>
+                            {% if meeting.user_rsvp %}
+                            <span class="badge {% if meeting.user_rsvp == 'attending' %}bg-success{% else %}bg-secondary{% endif %} rounded-pill x-small px-3">
+                                <i class="bi bi-check-circle me-1"></i> {{ meeting.user_rsvp|title }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <h5 class="fw-bold mb-2 text-dark">{{ meeting.title }}</h5>
+                        <p class="text-muted small mb-4 text-truncate-2">{{ meeting.description|truncatechars:120 }}</p>
+
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center gap-2 text-secondary small mb-2">
+                                <i class="bi bi-clock text-primary"></i> {{ meeting.meeting_date|date:"H:i A" }}
+                            </div>
+                            <div class="d-flex align-items-center gap-2 text-secondary small">
+                                <i class="bi bi-geo-alt text-primary"></i> {{ meeting.location }}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'meeting_detail' meeting.pk %}" class="btn btn-primary fw-bold">
+                                RSVP & DETAILS
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 py-4 px-4 bg-light rounded-4 border border-dashed text-center">
+                <p class="text-muted mb-0">No upcoming meetings scheduled. Check back soon!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Historical Timeline & Decisions -->
+    <div class="mb-4">
+        <h4 class="fw-bold text-dark mb-4"><i class="bi bi-journal-text me-2 text-success"></i>Historical Timeline & Decisions</h4>
+        <div class="timeline-container ps-4 border-start border-2 border-light ms-3">
+            {% for meeting in past_meetings %}
+            <div class="timeline-item position-relative mb-5">
+                <div class="timeline-marker position-absolute bg-success rounded-circle shadow-sm" style="width: 16px; height: 16px; left: -33px; top: 5px;"></div>
+                <div class="card border-0 shadow-sm bg-white" style="border-radius: 1rem;">
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="text-muted small fw-bold mb-1 text-uppercase">{{ meeting.meeting_date|date:"d F Y" }}</div>
+                                <h5 class="fw-bold mb-2 text-dark">{{ meeting.title }}</h5>
+                                <div class="d-flex gap-3 mb-0">
+                                    <span class="text-secondary small"><i class="bi bi-people me-1"></i> {{ meeting.rsvps.count }} RSVPed</span>
+                                    {% if meeting.minutes_summary %}
+                                    <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i> DECISIONS PUBLISHED</span>
+                                    {% else %}
+                                    <span class="text-muted small"><i class="bi bi-slash-circle me-1"></i> MINUTES PENDING</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                <a href="{% url 'meeting_detail' meeting.pk %}" class="btn btn-outline-success fw-bold rounded-pill px-4">
+                                    VIEW OUTCOMES
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">No past meetings recorded.</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .fw-black { font-weight: 800; }
+    .x-small { font-size: 0.65rem; }
+    .bento-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .bento-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    }
+</style>
+{% endblock %}

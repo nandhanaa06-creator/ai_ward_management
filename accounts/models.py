@@ -21,6 +21,10 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     ward = models.ForeignKey(Ward, on_delete=models.SET_NULL, null=True, blank=True)
     address = models.TextField(blank=True, null=True)
+    
+    # Location for smart assignment (Field Workers)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     # Helper methods for your custom admin panel logic
     def is_ward_member(self):

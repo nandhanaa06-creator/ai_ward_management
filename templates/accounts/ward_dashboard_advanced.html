@@ -1,19 +1,90 @@
 {% extends 'base.html' %}
 
-{% block content %}
+{% block extra_head %}
+<!-- Leaflet CSS for Heatmap -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <style>
-    /* ══════════════════════════════════════════════════════════════
-     Ward Member Decision Support Dashboard
-     ══════════════════════════════════════════════════════════════ */
     :root {
-        --ds-blue: #4361ee;
-        --ds-purple: #7209b7;
-        --ds-green: #06d6a0;
-        --ds-amber: #f77f00;
-        --ds-red: #ef233c;
-        --ds-glass: rgba(255, 255, 255, .88);
-        --ds-shadow: 0 12px 40px rgba(67, 97, 238, .10);
+        --ds-blue: #0ea5e9; /* Citizen Blue - Soft & Modern */
+        --ds-blue-light: #e0f2fe;
+        --ds-indigo: #6366f1;
+        --ds-purple: #8b5cf6;
+        --ds-green: #10b981;
+        --ds-amber: #f59e0b;
+        --ds-red: #ef4444;
+        --ds-glass: rgba(255, 255, 255, 0.92);
+        --ds-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.1), 0 8px 10px -6px rgba(14, 165, 233, 0.1);
     }
+
+    body {
+        background: #f8fafc; /* Clean light gray */
+    }
+
+    .kpi-tile, .ds-card {
+        border: 1px solid #e2e8f0;
+        box-shadow: var(--ds-shadow);
+    }
+
+    /* Bento Grid Highlights */
+    .bento-diagnostic {
+        grid-column: span 2;
+        min-height: 400px;
+    }
+
+    #wardHeatmap {
+        height: 340px;
+        border-radius: 12px;
+        z-index: 1;
+    }
+
+    .neon-pulse-red {
+        box-shadow: 0 0 15px #ef4444;
+        animation: pulse-red 2s infinite;
+    }
+
+    .neon-pulse-orange {
+        box-shadow: 0 0 15px #f59e0b;
+        animation: pulse-orange 2s infinite;
+    }
+
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    @keyframes pulse-orange {
+        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+
+    .kpi-tile, .ds-card, .bento-card {
+        border-radius: 24px !important;
+    }
+
+    .diagnostic-panel {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 1px solid #bae6fd;
+    }
+
+    .worker-suggestion-box {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        display: none;
+        margin-top: 10px;
+        animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
 
     body {
         background: linear-gradient(135deg, #eef0ff 0%, #f9f5ff 50%, #fffbf0 100%);
@@ -423,47 +494,104 @@
             </div>
             <div class="kpi-value" style="color:#06d6a0;">{{ resolution_rate }}%</div>
             <div class="kpi-label">Resolution Rate</div>
-            <div class="kpi-sub">{{ resolved }} of {{ total }} resolved</div>
+<!--  KPI TILES & AI DIAGNOSTICS                                     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="kpi-tile">
+            <div class="kpi-icon" style="background:rgba(67, 97, 238, .1); color:var(--ds-blue);">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="kpi-value text-dark">{{ total }}</div>
+            <div class="kpi-label">Total Reports</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-tile">
+            <div class="kpi-icon" style="background:rgba(6, 214, 160, .1); color:var(--ds-green);">
+                <i class="bi bi-check2-circle"></i>
+            </div>
+            <div class="kpi-value text-dark">{{ resolved }}</div>
+            <div class="kpi-label">Resolved Case</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-tile">
+            <div class="kpi-icon" style="background:rgba(239, 35, 60, .1); color:var(--ds-red);">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <div class="kpi-value text-dark">{{ pending }}</div>
+            <div class="kpi-label">Awaiting</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-tile diagnostic-panel">
+            <div class="kpi-icon" style="background:rgba(139, 92, 246, 0.1); color:var(--ds-purple);">
+                <i class="bi bi-cpu"></i>
+            </div>
+            <div class="kpi-value text-dark">{{ stress_score }}</div>
+            <div class="kpi-label">Stress Score</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- AI System Diagnostics Bento Card -->
+    <div class="col-lg-4">
+        <div class="ds-card diagnostic-panel h-100 shadow-sm" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+            <div class="ds-card-header">
+                <div>
+                    <h6 class="ds-card-title fw-bold mb-0">
+                        <i class="bi bi-cpu-fill text-primary"></i> AI System Diagnostics
+                    </h6>
+                    <small class="text-muted">Section 5.3 & 5.6 Metrics</small>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2">Live</span>
+            </div>
+            <div class="p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="text-muted small">Duplicate Count</div>
+                    <div class="badge bg-white text-primary border rounded-pill shadow-sm">{{ duplicate_count }} flagged</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="text-muted small">Predicted Res. Time</div>
+                    <div class="fw-bold text-dark">{{ predicted_res_time }} hrs <small class="text-muted fw-normal">(this week)</small></div>
+                </div>
+                <hr class="my-3 opacity-10">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="text-muted small">Ward Health Index</div>
+                    <div class="badge bg-{{ stress_color }} shadow-sm">Score: {{ stress_score }}</div>
+                </div>
+                <div class="progress" style="height: 10px; border-radius: 5px; background: rgba(0,0,0,0.05);">
+                    <div class="progress-bar bg-{{ stress_color }} progress-bar-striped progress-bar-animated" 
+                         style="width: {% widthratio stress_score 15 100 %}%;"></div>
+                </div>
+                <p class="text-muted x-small mt-2 mb-0" style="font-size: 0.7rem;">
+                    <i class="bi bi-info-circle me-1"></i> Threshold > 8 triggers Neon Stress alerts.
+                </p>
+            </div>
         </div>
     </div>
 
-    <!-- Satisfaction Index -->
-    <div class="col-6 col-md-3">
-        <div class="kpi-tile">
-            <div class="kpi-icon" style="background:#fff3cd;">
-                <i class="bi bi-star-fill" style="color:#f77f00;"></i>
-            </div>
-            <div class="kpi-value" style="color:#f77f00;">
-                {{ satisfaction_index|default:"—" }}
-                <span style="font-size:.95rem;">/5</span>
-            </div>
-            <div class="kpi-label">Satisfaction Index</div>
-            <div class="kpi-sub star-display">
-                {% for i in "12345" %}
-                {% if satisfaction_index >= forloop.counter %}
-                <i class="bi bi-star-fill"></i>
-                {% elif satisfaction_index >= forloop.counter|add:"-0.5" %}
-                <i class="bi bi-star-half"></i>
+    <!-- Ward Heatmap -->
+    <div class="col-lg-8">
+        <div class="ds-card h-100">
+            <div class="ds-card-header">
+                <div>
+                    <h6 class="ds-card-title fw-bold mb-0">
+                        <i class="bi bi-geo-alt-fill text-danger"></i> Pulse Digital Twin Map
+                    </h6>
+                    <small class="text-muted">Predictive Stress Visualization</small>
+                </div>
+                {% if stress_score > 8 %}
+                <span class="badge bg-danger neon-pulse-red rounded-pill px-3">CRITICAL STRESS</span>
                 {% else %}
-                <i class="bi bi-star" style="color:#ced4da;"></i>
+                <span class="badge bg-success rounded-pill px-3">STABLE STATUS</span>
                 {% endif %}
-                {% endfor %}
             </div>
+            <div id="wardHeatmap" class="{% if stress_score > 8 %}neon-pulse-red{% elif stress_score > 5 %}neon-pulse-orange{% endif %}" style="height: 300px; border-radius: 16px; margin: 10px;"></div>
         </div>
     </div>
-
-    <!-- Total Citizens -->
-    <div class="col-6 col-md-3">
-        <div class="kpi-tile">
-            <div class="kpi-icon" style="background:#f3e8ff;">
-                <i class="bi bi-people-fill" style="color:var(--ds-purple);"></i>
-            </div>
-            <div class="kpi-value" style="color:var(--ds-purple);">{{ total_citizens }}</div>
-            <div class="kpi-label">Ward Citizens</div>
-            <div class="kpi-sub">Registered on platform</div>
-        </div>
-    </div>
-
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -516,68 +644,106 @@
         </div>
     </div>
 
-    <!-- Hotspot Detection Card -->
+    <!-- Satisfaction Card -->
     <div class="col-lg-6">
         <div class="ds-card h-100">
-            <div class="ds-card-header">
+             <div class="ds-card-header">
                 <p class="ds-card-title">
-                    <i class="bi bi-fire" style="color:var(--ds-red);"></i>
-                    Complaint Hotspots
-                </p>
-                <span style="font-size:.72rem; color:#6c757d;">Top pending categories</span>
-            </div>
-
-            {% if hotspots %}
-            {% for h in hotspots %}
-            <div class="hotspot-row">
-                <div class="hotspot-label">
-                    <span>
-                        {% if h.category == 'Water' %}💧
-                        {% elif h.category == 'Electricity' %}⚡
-                        {% elif h.category == 'Roads' %}🛣
-                        {% elif h.category == 'Sanitation' %}🗑
-                        {% elif h.category == 'Trees' %}🌳
-                        {% elif h.category == 'Construction' %}🏗
-                        {% else %}📋{% endif %}
-                        {{ h.category }}
-                    </span>
-                    <span class="badge" style="background:#fff0f0; color:var(--ds-red);">{{ h.count }} pending</span>
-                </div>
-                <div class="hotspot-bar-track">
-                    <div class="hotspot-bar-fill" style="width:{% widthratio h.count hotspot_max 100 %}%;"></div>
-                </div>
-            </div>
-            {% endfor %}
-            {% else %}
-            <div class="text-center py-4 text-muted">
-                <i class="bi bi-emoji-smile d-block mb-2" style="font-size:2rem;"></i>
-                No pending complaints in any category — great work!
-            </div>
-            {% endif %}
-
-            <!-- Satisfaction progress -->
-            <hr class="my-3">
-            <div class="ds-card-header" style="margin-bottom:.6rem;">
-                <p class="ds-card-title" style="font-size:.85rem;">
                     <i class="bi bi-emoji-smile-fill" style="color:var(--ds-amber);"></i>
                     Citizen Satisfaction
                 </p>
-                <span class="badge rounded-pill text-bg-{{ satisfaction_color }} fw-semibold" style="font-size:.7rem;">
+                <span class="badge rounded-pill text-bg-{{ satisfaction_color }} fw-semibold" style="font-size:.75rem;">
                     {{ satisfaction_index }}/5
                 </span>
             </div>
+            
+            <div class="text-center py-4">
+                <div class="display-5 fw-bold text-dark mb-1">{{ satisfaction_index|default:"0.0" }}</div>
+                <div class="text-warning fs-3 mb-3">
+                    {% for i in "12345" %}
+                    {% if satisfaction_index >= forloop.counter %}
+                    <i class="bi bi-star-fill"></i>
+                    {% elif satisfaction_index >= forloop.counter|add:"-0.5" %}
+                    <i class="bi bi-star-half"></i>
+                    {% else %}
+                    <i class="bi bi-star" style="color:#ced4da;"></i>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                <p class="text-muted small px-3">Aggregated rating from {{ resolved }} resolved complaints in your ward.</p>
+            </div>
+
             <div class="progress" style="height:10px; border-radius:5px;">
                 <div class="progress-bar bg-{{ satisfaction_color }}" role="progressbar"
                     style="width:{{ satisfaction_pct }}%; transition:width 1s ease;"
                     aria-valuenow="{{ satisfaction_pct }}" aria-valuemin="0" aria-valuemax="100">
                 </div>
             </div>
-            <div style="font-size:.72rem; color:#6c757d; margin-top:.3rem;">
-                Based on citizen ratings for resolved complaints
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  ROW 2.5 — AI DUPLICATE ALERTS (New Section)                   -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+{% if flagged_duplicate_count > 0 %}
+<div class="row mb-3 mt-1">
+    <div class="col-12">
+        <div class="ds-card border-warning shadow-sm" style="background: #fffbef; border: 1.5px dashed #ffc107;">
+            <div class="ds-card-header mb-2">
+                <p class="ds-card-title text-dark">
+                    <i class="bi bi-intersect text-warning"></i>
+                    AI Duplicate Detection: Action Required
+                </p>
+                <span class="badge rounded-pill bg-warning text-dark px-3 py-2 fw-bold" style="font-size:.75rem;">
+                    {{ flagged_duplicate_count }} POTENTIAL DUPLICATES DETECTED
+                </span>
+            </div>
+            <p class="text-muted small mb-3">The AI engine has flagged the following submissions as potential duplicates based on GPS proximity (<50m) and text similarity (70%+). Please review and merge them to avoid redundant work.</p>
+            
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0" style="font-size:.85rem; background: transparent;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>New Complaint (Duplicate)</th>
+                            <th></th>
+                            <th>Matching Master Complaint</th>
+                            <th class="text-end">Verification Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in flagged_duplicates %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold text-dark">{{ d.title }}</div>
+                                <div class="text-muted small">#{{ d.id }} · {{ d.created_at|timesince }} ago</div>
+                            </td>
+                            <td class="text-center text-warning fs-4"><i class="bi bi-arrow-left-right"></i></td>
+                            <td>
+                                <div class="fw-bold text-primary">#{{ d.potential_duplicate_of.id }}: {{ d.potential_duplicate_of.title }}</div>
+                                <div class="text-muted small">Current status: {{ d.potential_duplicate_of.get_status_display }}</div>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group">
+                                    <a href="{% url 'complaint_detail' d.id %}" class="btn btn-sm btn-outline-secondary px-3">Review</a>
+                                    <form action="{% url 'merge_complaint' d.id %}" method="POST" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="master_id" value="{{ d.potential_duplicate_of.id }}">
+                                        <button type="submit" class="btn btn-sm btn-warning fw-bold px-3" onclick="return confirm('Merge this duplicate into the master complaint? This will reject the duplicate and log the merge.')">
+                                           <i class="bi bi-intersect me-1"></i> Merge
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!--  ROW 3 — PRIORITY ALERTS + MEETINGS + QUICK ACTIONS            -->
@@ -585,7 +751,7 @@
 <div class="row g-3">
 
     <!-- Priority Alerts -->
-    <div class="col-lg-5">
+    <div class="col-lg-4">
         <div class="ds-card h-100">
             <div class="ds-card-header">
                 <p class="ds-card-title">
@@ -618,16 +784,63 @@
                         {{ c.created_at|timesince }} ago · {{ c.get_status_display }}
                     </div>
                 </div>
-                <a href="{% url 'complaint_detail' c.id %}"
-                    style="font-size:.72rem; white-space:nowrap; color:var(--ds-blue); font-weight:600; text-decoration:none;">
-                    Review →
-                </a>
-            </div>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="{% url 'complaint_detail' c.id %}" class="btn btn-sm btn-outline-primary py-1" style="font-size: 0.75rem;">Review Details</a>
+                        <button onclick="getSmartSuggestion({{ c.id }})" class="btn btn-sm btn-primary py-1" style="font-size: 0.75rem;">
+                            <i class="bi bi-robot me-1"></i> Suggest Worker
+                        </button>
+                    </div>
+                </div>
+                <!-- Suggestion Target -->
+                <div id="suggestion-{{ c.id }}" class="worker-suggestion-box">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="small text-primary fw-bold">AI Diagnostic Engine Analyzing...</span>
+                    </div>
+                </div>
             {% endfor %}
             {% else %}
             <div class="text-center py-4 text-muted">
                 <i class="bi bi-shield-check d-block mb-2" style="font-size:2rem; color:var(--ds-green);"></i>
                 <span style="font-size:.85rem;">No high-priority open complaints. Ward is stable.</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Potential Duplicates (AI Flagged) -->
+    <div class="col-lg-4">
+        <div class="ds-card h-100 bento-card">
+            <div class="ds-card-header">
+                <p class="ds-card-title">
+                    <i class="bi bi-intersect text-warning"></i>
+                    AI Duplicate Leads
+                </p>
+                {% if flagged_duplicate_count > 0 %}
+                <span class="badge bg-warning text-dark rounded-pill">{{ flagged_duplicate_count }}</span>
+                {% endif %}
+            </div>
+            
+            {% if flagged_duplicates %}
+            <div class="p-2">
+                {% for d in flagged_duplicates %}
+                <div class="p-2 mb-2 border rounded-3 bg-light-subtle" style="font-size: 0.8rem;">
+                    <div class="fw-bold text-truncate">{{ d.title }}</div>
+                    <div class="text-muted x-small mb-2">Flagged near #{{ d.potential_duplicate_of.id }}</div>
+                    <form action="{% url 'merge_complaint' d.id %}" method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="master_id" value="{{ d.potential_duplicate_of.id }}">
+                        <button type="submit" class="btn btn-sm btn-warning w-100 py-0" style="font-size: 0.7rem;">
+                            <i class="bi bi-sign-merge-right"></i> Merge into #{{ d.potential_duplicate_of.id }}
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-check-circle d-block mb-1" style="font-size: 1.5rem;"></i>
+                <span style="font-size: 0.8rem;">No duplicates found.</span>
             </div>
             {% endif %}
         </div>
@@ -673,45 +886,128 @@
             </div>
             {% endif %}
         </div>
-    </div>
+</div><!-- /row 3 -->
 
+<div class="row g-3 mt-3 mb-4">
     <!-- Quick Actions -->
-    <div class="col-lg-3">
-        <div class="ds-card h-100">
+    <div class="col-lg-12">
+        <div class="ds-card shadow-sm">
             <div class="ds-card-header">
-                <p class="ds-card-title">
+                <p class="ds-card-title mb-0">
                     <i class="bi bi-lightning-charge-fill" style="color:var(--ds-amber);"></i>
-                    Quick Actions
+                    Administrative Quick Actions
                 </p>
             </div>
-
-            <a href="{% url 'complaint_list' %}" class="quick-action">
-                <i class="bi bi-list-check"></i> Review Complaints
-            </a>
-            <a href="{% url 'schedule_meeting' %}" class="quick-action">
-                <i class="bi bi-calendar-plus"></i> Schedule Grama Sabha
-            </a>
-            <a href="{% url 'match_schemes' %}" class="quick-action">
-                <i class="bi bi-gift"></i> Browse Schemes
-            </a>
-            <a href="{% url 'add_ward' %}" class="quick-action">
-                <i class="bi bi-plus-circle"></i> Manage Wards
-            </a>
-            <a href="{% url 'ward_performance_report' %}" class="quick-action"
-                style="border-color:var(--ds-blue); color:var(--ds-blue);">
-                <i class="bi bi-file-earmark-bar-graph"></i> Performance Report
-            </a>
+            <div class="p-3 d-flex flex-wrap gap-2">
+                <a href="{% url 'complaint_list' %}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                    <i class="bi bi-list-check me-1"></i> Review Complaints
+                </a>
+                <a href="{% url 'schedule_meeting' %}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                    <i class="bi bi-calendar-plus me-1"></i> Schedule Grama Sabha
+                </a>
+                <a href="{% url 'match_schemes' %}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                    <i class="bi bi-gift me-1"></i> Browse Schemes
+                </a>
+                <a href="{% url 'add_ward' %}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                    <i class="bi bi-plus-circle me-1"></i> Manage Wards
+                </a>
+                <a href="{% url 'ward_performance_report' %}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-file-earmark-bar-graph me-1"></i> Performance Report
+                </a>
+            </div>
         </div>
     </div>
-
-</div><!-- /row 3 -->
+</div>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!--  Progress bar animation trigger (runs after DOM ready)         -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
+{% block extra_js %}
+<!-- Leaflet JS and Heatmap -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
-    /* Animate progress bars on page load */
     document.addEventListener('DOMContentLoaded', function () {
+        // --- 1. Map Initialization ---
+        const map = L.map('wardHeatmap').setView([10.8505, 76.2711], 15); // Fallback to Kerala
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const heatmapData = {{ heatmap_data|safe }};
+        const markers = [];
+
+        if (heatmapData.length > 0) {
+            const bounds = L.latLngBounds();
+            
+            // Cluster detection: if points are extremely close, we count them as a zone
+            // For this demo, we'll mark individual points and highlight dense areas
+            heatmapData.forEach(p => {
+                const marker = L.circle([p.lat, p.lng], {
+                    color: p.count > 0 ? '#ef4444' : '#10b981',
+                    fillColor: p.count > 0 ? '#ef4444' : '#10b981',
+                    fillOpacity: 0.4,
+                    radius: 40
+                }).addTo(map);
+                
+                // If high stress (>8), markers are red/orange and pulse
+                if ({{ stress_score }} > 8) {
+                    marker.setStyle({ color: '#ef4444', fillOpacity: 0.8, weight: 8 });
+                } else if ({{ stress_score }} > 5) {
+                    marker.setStyle({ color: '#f59e0b', fillOpacity: 0.6, weight: 5 });
+                } else {
+                    marker.setStyle({ color: '#10b981', fillOpacity: 0.4, weight: 3 });
+                }
+
+                bounds.extend([p.lat, p.lng]);
+            });
+
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+
+        // --- 2. Smart Assignment Logic ---
+        window.getSmartSuggestion = function(complaintId) {
+            const targetDiv = document.getElementById(`suggestion-${complaintId}`);
+            targetDiv.style.display = 'block';
+            targetDiv.innerHTML = `
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="small text-primary fw-bold">AI Diagnostic Engine Analyzing...</span>
+                </div>
+            `;
+
+            fetch(`/complaints/${complaintId}/suggest-worker/`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        targetDiv.innerHTML = `<div class="text-danger small"><i class="bi bi-exclamation-circle me-1"></i> ${data.error}</div>`;
+                    } else {
+                        targetDiv.innerHTML = `
+                            <div class="d-flex flex-column gap-1">
+                                <div class="small fw-bold text-dark">💡 AI Best-Fit Recommendation:</div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-primary fw-bold">${data.username}</span>
+                                    <span class="badge bg-light text-dark border">Load: ${data.load} tasks</span>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    Distance: <strong>${data.distance_m} meters</strong> away
+                                </div>
+                                <form action="/complaints/${complaintId}/reassign/" method="POST" class="mt-2 text-end">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="worker_id" value="${data.worker_id}">
+                                    <button type="submit" class="btn btn-sm btn-success px-3 w-100" style="font-size: 0.75rem;">
+                                        Approve & Assign
+                                    </button>
+                                </form>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    targetDiv.innerHTML = `<div class="text-danger small">Diagnostic engine connection fail.</div>`;
+                });
+        };
+
+        // --- 3. Progress Animations ---
         document.querySelectorAll('.res-bar-fill, .hotspot-bar-fill, .progress-bar').forEach(el => {
             const target = el.style.width;
             el.style.width = '0';
@@ -721,5 +1017,4 @@
         });
     });
 </script>
-
 {% endblock %}

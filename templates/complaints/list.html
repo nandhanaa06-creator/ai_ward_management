@@ -27,8 +27,14 @@
                     <td>{{ complaint.created_at|date:"d M Y" }}</td>
                     <td><span class="badge bg-secondary">{{ complaint.get_status_display }}</span></td>
                     <td><span class="badge bg-info text-dark">{{ complaint.priority }}</span></td>
-                    <td><a href="{% url 'complaint_detail' complaint.id %}" class="btn btn-sm btn-outline-primary">View
-                            Details</a></td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'complaint_detail' complaint.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                            {% if user.role == 'field_worker' and complaint.status != 'resolved' %}
+                            <a href="{% url 'worker_task_detail' complaint.id %}" class="btn btn-sm btn-primary fw-bold">Tactical View</a>
+                            {% endif %}
+                        </div>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>

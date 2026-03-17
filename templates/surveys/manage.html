@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary"><i class="bi bi-collection-fill me-2"></i>Data Collection Hub</h2>
+            <p class="text-muted mb-0">Build and manage custom forms for field data harvesting.</p>
+        </div>
+        <a href="{% url 'create_survey' %}" class="btn btn-primary d-flex align-items-center gap-2 px-4 shadow-sm">
+            <i class="bi bi-plus-lg"></i>
+            <span class="fw-bold">BUILD NEW FORM</span>
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {% for survey in surveys %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm bento-card position-relative overflow-hidden" style="border-radius: 1.25rem;">
+                <!-- Status Ribbon -->
+                <div class="position-absolute" style="top: 1rem; right: -2rem; transform: rotate(45deg); width: 8rem; text-align: center; background: {% if survey.is_active %}rgba(16, 185, 129, 0.1){% else %}rgba(244, 63, 94, 0.1){% endif %}; color: {% if survey.is_active %}$059669{% else %}$e11d48{% endif %}; font-size: 0.70rem; font-weight: 800; border: 1px solid currentColor;">
+                    {% if survey.is_active %}ACTIVE{% else %}INACTIVE{% endif %}
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <span class="badge bg-light text-primary border mb-2">{{ survey.fields.count }} Fields</span>
+                        <h5 class="fw-bold mb-1">{{ survey.title }}</h5>
+                        <p class="text-muted small mb-3 text-truncate-2">{{ survey.description|default:"No description provided." }}</p>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="text-center bg-light rounded-3 p-2 flex-grow-1 border">
+                            <div class="fw-bold text-primary h4 mb-0">{{ survey.submissions.count }}</div>
+                            <div class="x-small text-muted text-uppercase fw-bold">Submissions</div>
+                        </div>
+                        <div class="text-center bg-light rounded-3 p-2 flex-grow-1 border">
+                            <div class="fw-bold h4 mb-0">
+                                {% if survey.expiry_date %}
+                                    {{ survey.expiry_date|date:"M d" }}
+                                {% else %}
+                                    ∞
+                                {% endif %}
+                            </div>
+                            <div class="x-small text-muted text-uppercase fw-bold">Expires</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-light p-2 rounded-2 mb-4 d-flex align-items-center justify-content-between border">
+                        <code class="small text-primary">/s/{{ survey.slug|truncatechars:15 }}</code>
+                        <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="copyToClipboard('{{ request.build_absolute_uri|slice:":-8" }}s/{{ survey.slug }}/')">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'survey_submissions' survey.id %}" class="btn btn-outline-primary fw-bold">
+                            <i class="bi bi-table me-2"></i>VIEW DATA
+                        </a>
+                        <div class="btn-group w-100">
+                            <a href="{% url 'edit_survey' survey.id %}" class="btn btn-light border fw-bold flex-grow-1">
+                                <i class="bi bi-pencil me-1"></i>EDIT
+                            </a>
+                            <button type="button" class="btn btn-light border dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="visually-hidden">Toggle</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                <li>
+                                    <form action="{% url 'delete_survey' survey.id %}" method="POST" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item text-danger fw-bold" onclick="return confirm('Are you sure you want to delete this form?')">
+                                            <i class="bi bi-trash3 me-2"></i>Delete Form
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="display-1 text-muted opacity-10 mb-4"><i class="bi bi-file-earmark-plus"></i></div>
+            <h4 class="text-muted">No survey forms created yet.</h4>
+            <p class="text-muted mb-4">Start collecting critical field data by building your first dynamic form.</p>
+            <a href="{% url 'create_survey' %}" class="btn btn-primary px-5 py-3 fw-bold">BUILD FIRST FORM</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('URL copied to clipboard!');
+    });
+}
+</script>
+
+<style>
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .x-small { font-size: 0.65rem; }
+    .bento-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .bento-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    }
+</style>
+{% endblock %}

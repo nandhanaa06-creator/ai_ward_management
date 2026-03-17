@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'manage_surveys' %}" class="text-decoration-none">Data Collection Hub</a></li>
+            <li class="breadcrumb-item active">{% if survey %}Edit Form{% else %}Build New Form{% endif %}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4 justify-content-center">
+        <div class="col-xl-9">
+            <form method="post" id="surveyBuilderForm">
+                {% csrf_token %}
+                
+                <!-- Survey Metadata Card -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: 1.25rem;">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h5 class="fw-bold mb-0 text-primary">
+                            <i class="bi bi-gear-wide-connected me-2"></i>Form Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body px-4 pb-4 pt-0">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Form Title</label>
+                            {{ form.title }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Description / Instructions</label>
+                            {{ form.description }}
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted text-uppercase">Expiry Date & Time</label>
+                                {{ form.expiry_date }}
+                            </div>
+                            <div class="col-md-6 d-flex align-items-center">
+                                <div class="form-check form-switch mt-4">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label fw-bold" for="{{ form.is_active.id_for_label }}">Publish Immediately</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Fields Card -->
+                <div class="card border-0 shadow-sm mb-5" style="border-radius: 1.25rem;">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-primary">
+                            <i class="bi bi-layers-half me-2"></i>Form Fields
+                        </h5>
+                        <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="add-field-btn">
+                            <i class="bi bi-plus-lg me-1"></i>ADD FIELD
+                        </button>
+                    </div>
+                    
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            {{ formset.management_form }}
+                            <table class="table align-middle mb-0" id="fields-table">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="width: 50px;">Order</th>
+                                        <th>Field Label</th>
+                                        <th>Input Type</th>
+                                        <th>Options (Dropdown Only)</th>
+                                        <th style="width: 100px;">Required</th>
+                                        <th style="width: 50px;">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="formset-container">
+                                    {% for field_form in formset %}
+                                    <tr class="formset-row">
+                                        <td>
+                                            {{ field_form.id }}
+                                            {{ field_form.order }}
+                                        </td>
+                                        <td>{{ field_form.label }}</td>
+                                        <td>{{ field_form.field_type }}</td>
+                                        <td>{{ field_form.options }}</td>
+                                        <td class="text-center">{{ field_form.required }}</td>
+                                        <td class="text-center">
+                                            {% if field_form.instance.pk %}
+                                                {{ field_form.DELETE }}
+                                            {% else %}
+                                                <button type="button" class="btn btn-link text-danger p-0 delete-row-btn">
+                                                    <i class="bi bi-x-circle-fill"></i>
+                                                </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Empty state if no fields -->
+                    <div id="no-fields-msg" class="text-center py-5 {% if formset.total_form_count > 0 %}d-none{% endif %}">
+                        <i class="bi bi-layout-text-window-reverse fs-1 text-muted opacity-25 d-block mb-3"></i>
+                        <p class="text-muted">No fields added yet. Click "Add Field" to start building your form.</p>
+                    </div>
+                </div>
+
+                <!-- Action Bar -->
+                <div class="fixed-bottom bg-white border-top shadow-lg p-3 d-flex justify-content-end gap-3" style="z-index: 1030;">
+                    <a href="{% url 'manage_surveys' %}" class="btn btn-light border px-4 fw-bold text-muted">CANCEL</a>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-cloud-arrow-up-fill me-2"></i>SAVE FORM STRUCTURE
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Template for new field rows -->
+<script type="text/html" id="empty-form-template">
+    <tr class="formset-row">
+        <td>{{ formset.empty_form.order }}</td>
+        <td>{{ formset.empty_form.label }}</td>
+        <td>{{ formset.empty_form.field_type }}</td>
+        <td>{{ formset.empty_form.options }}</td>
+        <td class="text-center">{{ formset.empty_form.required }}</td>
+        <td class="text-center">
+            <button type="button" class="btn btn-link text-danger p-0 delete-row-btn">
+                <i class="bi bi-x-circle-fill"></i>
+            </button>
+        </td>
+    </tr>
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addBtn = document.getElementById('add-field-btn');
+    const container = document.getElementById('formset-container');
+    const totalForms = document.getElementById('id_fields-TOTAL_FORMS');
+    const emptyTemplate = document.getElementById('empty-form-template').innerHTML;
+    const noFieldsMsg = document.getElementById('no-fields-msg');
+
+    addBtn.addEventListener('click', function() {
+        const formIdx = parseInt(totalForms.value);
+        const newRow = emptyTemplate.replace(/__prefix__/g, formIdx);
+        
+        container.insertAdjacentHTML('beforeend', newRow);
+        totalForms.value = formIdx + 1;
+        
+        if (noFieldsMsg) noFieldsMsg.classList.add('d-none');
+        updateOrders();
+    });
+
+    container.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-row-btn')) {
+            const row = e.target.closest('.formset-row');
+            row.remove();
+            
+            // Adjust TOTAL_FORMS count
+            const rows = container.querySelectorAll('.formset-row');
+            totalForms.value = rows.length;
+            
+            // Re-index all remaining forms to ensure Django picks them up correctly
+            reIndexForms();
+
+            if (rows.length === 0) noFieldsMsg.classList.remove('d-none');
+        }
+    });
+
+    function reIndexForms() {
+        const rows = container.querySelectorAll('.formset-row');
+        rows.forEach((row, index) => {
+            const inputs = row.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                const name = input.getAttribute('name');
+                if (name) {
+                    input.setAttribute('name', name.replace(/fields-\d+-/, `fields-${index}-`));
+                    input.setAttribute('id', input.getAttribute('id').replace(/id_fields-\d+-/, `id_fields-${index}-`));
+                }
+            });
+            
+            // Update the order hidden input value
+            const orderInput = row.querySelector('input[name*="-order"]');
+            if (orderInput) orderInput.value = index;
+        });
+    }
+
+    function updateOrders() {
+        const rows = container.querySelectorAll('.formset-row');
+        rows.forEach((row, index) => {
+            const orderInput = row.querySelector('input[name*="-order"]');
+            if (orderInput) orderInput.value = index;
+        });
+    }
+});
+</script>
+
+<style>
+    body { padding-bottom: 80px; }
+    .breadcrumb-item + .breadcrumb-item::before { content: "›"; }
+    th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
+    .formset-row:hover { background-color: rgba(26, 35, 126, 0.01); }
+    .btn-link:hover { opacity: 0.8; }
+</style>
+{% endblock %}

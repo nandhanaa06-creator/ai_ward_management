@@ -68,3 +68,34 @@ class ComplaintForm(forms.ModelForm):
                 '"garbage" help our AI categorize your complaint automatically.'
             ),
         }
+
+class TaskCompletionForm(forms.ModelForm):
+    """
+    Form for field workers to mark a task as resolved.
+    Requires proof image and description.
+    """
+    resolution_image = forms.ImageField(
+        required=True,
+        label="Upload Completion Photo",
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/*',
+            'capture': 'environment', # Suggest camera on mobile
+        })
+    )
+
+    class Meta:
+        model = Complaint
+        fields = ['resolution_image']
+        # The widget for resolution_image is now defined directly on the field.
+        # No need to define it here in Meta.widgets.
+
+    description = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Explain what was fixed and how...'
+        }),
+        label="Resolution Summary",
+        required=True
+    )
