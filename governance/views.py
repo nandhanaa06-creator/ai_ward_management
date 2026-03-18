@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
-from .models import Meeting, MeetingRSVP, MeetingFeedback
-from .forms import MeetingForm, MeetingMinutesForm, MeetingFeedbackForm
+from .models import Meeting, MeetingRSVP, MeetingFeedback, Notification, MeetingSummary
+from .forms import MeetingForm, MeetingMinutesForm, MeetingFeedbackForm, MeetingSummaryForm
 
 def is_ward_member(user):
     return user.is_authenticated and (user.role == 'ward_member' or user.role == 'panchayath_admin')
@@ -20,7 +20,18 @@ def schedule_meeting(request):
             meeting = form.save(commit=False)
             meeting.ward = request.user.ward
             meeting.save()
-            messages.success(request, f'Meeting "{meeting.title}" scheduled successfully.')
+            
+            # --- Trigger Notifications for all citizens in the ward ---
+            from accounts.models import User
+            citizens = User.objects.filter(ward=meeting.ward, role='citizen')
+            for citizen in citizens:
+                Notification.objects.create(
+                    user=citizen,
+                    title="New Grama Sabha Scheduled",
+                    message=f"A new meeting '{meeting.title}' has been scheduled for {meeting.meeting_date.strftime('%d %b %Y at %H:%M')}. Venue: {meeting.location}."
+                )
+            
+            messages.success(request, f'Meeting "{meeting.title}" scheduled successfully. Notifications sent to ward citizens.')
             return redirect('meeting_list')
     else:
         form = MeetingForm()
@@ -94,14 +105,16 @@ def publish_minutes(request, pk):
     """
     meeting = get_object_or_404(Meeting, pk=pk, ward=request.user.ward)
     
+    summary, _ = MeetingSummary.objects.get_or_create(meeting=meeting)
+    
     if request.method == 'POST':
-        form = MeetingMinutesForm(request.POST, request.FILES, instance=meeting)
+        form = MeetingSummaryForm(request.POST, instance=summary)
         if form.is_valid():
             form.save()
-            messages.success(request, f'Minutes for "{meeting.title}" have been published.')
+            messages.success(request, f'Minutes and decisions for "{meeting.title}" have been published.')
             return redirect('meeting_detail', pk=meeting.id)
     else:
-        form = MeetingMinutesForm(instance=meeting)
+        form = MeetingSummaryForm(instance=summary)
         
     return render(request, 'governance/publish_minutes.html', {
         'form': form,

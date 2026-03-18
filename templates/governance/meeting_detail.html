@@ -1,27 +1,43 @@
 {% extends 'base.html' %}
-{% load static %}
 
 {% block content %}
+<style>
+    .detail-card {
+        background: #fff;
+        border-radius: 24px;
+        padding: 2.5rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+    .agenda-box {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 1.5rem;
+        border-left: 5px solid var(--brand-primary);
+    }
+    .decisions-box {
+        background: #f0fdf4;
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid #bbf7d0;
+    }
+    .badge-outline {
+        background: transparent;
+        border: 1px solid currentColor;
+        font-size: 0.75rem;
+    }
+</style>
+
 <div class="container py-4">
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'meeting_list' %}" class="text-decoration-none">Grama Sabha</a></li>
-            <li class="breadcrumb-item active">{{ meeting.title }}</li>
-        </ol>
-    </nav>
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{% url 'meeting_list' %}" class="btn btn-light rounded-circle border p-2" style="width: 40px; height: 40px;">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h3 class="fw-bold mb-0">Meeting Details</h3>
+    </div>
 
     <div class="row g-4">
-        <!-- Main Content (Agenda & Minutes) -->
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm mb-4" style="border-radius: 1.25rem;">
-                <div class="card-body p-4 p-md-5">
-                    <div class="d-flex justify-content-between align-items-start mb-4">
-                        <div>
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle mb-2 px-3 py-2 fw-bold">
-                                {% if is_past %}PAST MEETING{% else %}UPCOMING MEETING{% endif %}
-                            </span>
-                            <h2 class="fw-black text-dark mb-1">{{ meeting.title }}</h2>
-                            <p class="text-muted"><i class="bi bi-geo-alt-fill me-1"></i> {{ meeting.location }}</p>
                         </div>
                         {% if meeting.agenda_pdf %}
                         <a href="{{ meeting.agenda_pdf.url }}" class="btn btn-outline-primary fw-bold" target="_blank">

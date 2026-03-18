@@ -4,8 +4,9 @@
 <style>
     .detail-card {
         background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        border-radius: 24px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e2e8f0;
         overflow: hidden;
         margin-bottom: 2rem;
     }
@@ -107,12 +108,20 @@
 
         <!-- MAIN DETAIL CARD -->
         <div class="detail-card">
-            <div class="status-banner {{ complaint.status }}">
+            <div class="status-banner {% if complaint.status == 'urgent_review' %}bg-danger shadow-lg{% else %}{{ complaint.status }}{% endif %}">
                 <div><i class="bi bi-info-circle-fill me-2"></i>Status: {{ complaint.get_status_display }}</div>
                 {% if complaint.priority == 'high' %}
-                <span class="badge bg-danger">HIGH PRIORITY ⚠️</span>
+                <span class="badge bg-light text-danger border border-danger shadow-sm">HIGH PRIORITY ⚠️</span>
                 {% endif %}
             </div>
+
+            {% if complaint.ai_analysis_reason %}
+            <div class="ai-analysis-strip px-4 py-2 d-flex align-items-center gap-2" 
+                 style="background: #e0f2fe; border-bottom: 2px solid #bae6fd;">
+                <span class="badge rounded-pill px-3 py-1 shadow-sm" style="background: #0ea5e9; color: #fff; font-size: 0.72rem; letter-spacing: 0.05em;">AI ANALYSIS</span>
+                <span class="fw-bold small" style="color: #0369a1;"><i class="bi bi-robot me-1"></i> {{ complaint.ai_analysis_reason }}</span>
+            </div>
+            {% endif %}
 
             {% if complaint.image %}
             <img src="{{ complaint.image.url }}" class="img-showcase" alt="Complaint Issue">
@@ -205,7 +214,7 @@
         {% endif %}
 
         <!-- STATUS HISTORY / AUDIT TRAIL -->
-        <div class="card mt-4 border-0 shadow-sm" style="border-radius:16px;">
+        <div class="card mt-4 border-0 shadow-sm" style="border-radius:24px;">
             <div class="card-header bg-white border-bottom py-3">
                 <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-journal-check text-success me-2"></i>Resolution History & Audit Trail</h5>
             </div>
@@ -243,7 +252,7 @@
 
         <!-- CITIZEN FEEDBACK FORM -->
         {% if request.user == complaint.user %}
-        <div class="card mt-4 p-4 border-0 shadow-sm" style="border-radius:12px;">
+        <div class="card mt-4 p-4 border-0 shadow-sm" style="border-radius:24px;">
             {% if complaint.citizen_rating %}
             <h5 class="fw-bold mb-2">Your Feedback</h5>
             <div class="text-warning fs-4 mb-2">
@@ -287,7 +296,7 @@
         {% endif %}
 
         <!-- ADMIN-CITIZEN MESSAGE THREAD -->
-        <div class="card mt-4 border-0 shadow-sm" style="border-radius:16px; overflow: hidden;">
+        <div class="card mt-4 border-0 shadow-sm" style="border-radius:24px; overflow: hidden;">
             <div class="card-header bg-white border-bottom py-3">
                 <h5 class="fw-bold mb-0"><i class="bi bi-chat-text-fill text-primary me-2"></i>Communication Thread</h5>
             </div>

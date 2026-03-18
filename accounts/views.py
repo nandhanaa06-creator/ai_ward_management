@@ -162,18 +162,22 @@ def dashboard(request):
 
     # ── Citizen ────────────────────────────────────────────────────
     if user.role == 'citizen':
-        my_complaints    = Complaint.objects.filter(user=user)
-        upcoming_meetings = Meeting.objects.filter(
-            ward=user.ward, meeting_date__gte=timezone.now()
-        ).order_by('meeting_date')[:3]
+        my_complaints = Complaint.objects.filter(user=user)
+        profile, _ = CitizenProfile.objects.get_or_create(user=user)
+        all_meetings = Meeting.objects.filter(ward=user.ward).order_by('-meeting_date')
+        upcoming_meetings = all_meetings.filter(meeting_date__gte=timezone.now()).order_by('meeting_date')[:2]
+        past_meetings = all_meetings.filter(meeting_date__lt=timezone.now())[:2]
 
         context = {
-            'total':            my_complaints.count(),
-            'resolved':         my_complaints.filter(status='resolved').count(),
-            'pending':          my_complaints.filter(status='pending').count(),
+            'profile': profile,
+            'total': my_complaints.count(),
+            # Action Pending = Pending + In Progress + Urgent Review (for comprehensive view)
+            'pending': my_complaints.filter(status__in=['pending', 'in_progress', 'urgent_review']).count(),
+            'resolved': my_complaints.filter(status='resolved').count(),
             'recent_complaints': my_complaints.order_by('-created_at')[:5],
             'upcoming_meetings': upcoming_meetings,
-            'user_ward':        user.ward,
+            'past_meetings': past_meetings,
+            'user_ward': user.ward,
         }
         return render(request, 'accounts/citizen_dashboard.html', context)
 

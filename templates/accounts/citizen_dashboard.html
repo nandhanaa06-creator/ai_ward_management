@@ -56,7 +56,7 @@
     /* Stat Cards Styling */
     .stat-card {
         padding: 1.5rem;
-        border-radius: 16px;
+        border-radius: 24px !important;
         position: relative;
         overflow: hidden;
         color: #fff;
@@ -64,6 +64,14 @@
         display: flex;
         align-items: center;
         gap: 1.25rem;
+        text-decoration: none;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.2);
+        color: #fff;
     }
 
     .stat-card.primary {
@@ -256,29 +264,29 @@
 
     <!-- STATS ROW (3 Columns) -->
     <div class="bento-stat-main">
-        <div class="stat-card primary bento-card border-0">
+        <a href="{% url 'complaint_list' %}" class="stat-card primary bento-card border-0">
             <div class="stat-icon"><i class="bi bi-megaphone-fill"></i></div>
             <div class="stat-content">
                 <div class="stat-title">Total Reported</div>
                 <div class="stat-value">{{ total }}</div>
             </div>
-        </div>
+        </a>
 
-        <div class="stat-card warning bento-card border-0">
+        <a href="{% url 'complaint_list' %}?status=pending" class="stat-card warning bento-card border-0">
             <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
             <div class="stat-content">
                 <div class="stat-title">Action Pending</div>
                 <div class="stat-value">{{ pending }}</div>
             </div>
-        </div>
+        </a>
 
-        <div class="stat-card success bento-card border-0">
+        <a href="{% url 'complaint_list' %}?status=resolved" class="stat-card success bento-card border-0">
             <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
             <div class="stat-content">
                 <div class="stat-title">Successfully Resolved</div>
                 <div class="stat-value">{{ resolved }}</div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- RECENT COMPLAINTS TABLE (8 Columns) -->
@@ -351,11 +359,11 @@
             <div class="meeting-item flex-column align-items-stretch">
                 <div class="d-flex gap-3 mb-3">
                     <div class="meeting-date">
-                        <div class="meeting-month">{{ meeting.meeting_date|date:"M" }}</div>
+                        <div class="meeting-month text-uppercase">{{ meeting.meeting_date|date:"M" }}</div>
                         <div class="meeting-day">{{ meeting.meeting_date|date:"d" }}</div>
                     </div>
                     <div class="flex-grow-1">
-                        <h6 class="fw-bold mb-1 text-dark fs-sm" style="font-size: 0.95rem;">{{ meeting.title }}</h6>
+                        <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">{{ meeting.title }}</h6>
                         <div class="text-secondary small d-flex align-items-center gap-1 mb-1">
                             <i class="bi bi-clock"></i> {{ meeting.meeting_date|date:"H:i A" }}
                         </div>
@@ -366,24 +374,73 @@
                 </div>
                 
                 <div class="d-flex gap-2">
-                    <form action="{% url 'rsvp_meeting' meeting.pk %}" method="POST" class="flex-grow-1">
+                    <a href="{% url 'meeting_detail' meeting.pk %}" class="btn btn-sm btn-primary flex-grow-1 fw-bold rounded-pill">
+                        <i class="bi bi-journal-text me-1"></i> AGENDA
+                    </a>
+                    <form action="{% url 'rsvp_meeting' meeting.pk %}" method="POST">
                         {% csrf_token %}
                         <input type="hidden" name="status" value="attending">
-                        <button type="submit" class="btn btn-sm w-100 fw-bold {% if meeting.user_rsvp == 'attending' %}btn-success{% else %}btn-outline-success{% endif %}">
-                            <i class="bi bi-check-lg me-1"></i> ATTENDING
+                        <button type="submit" class="btn btn-sm border fw-bold rounded-circle {% if meeting.user_rsvp == 'attending' %}btn-success{% else %}btn-light text-muted{% endif %}" title="RSVP Attending">
+                            <i class="bi bi-check-lg"></i>
                         </button>
                     </form>
-                    <a href="{% url 'meeting_detail' meeting.pk %}" class="btn btn-sm btn-light border fw-bold text-muted px-3">
-                        <i class="bi bi-info-circle"></i>
-                    </a>
                 </div>
             </div>
-            {% empty %}
-            <div class="text-center py-4">
-                <i class="bi bi-calendar-x fs-1 text-muted opacity-50 d-block mb-3"></i>
-                <p class="text-muted small fw-medium">No upcoming Grama Sabha meetings scheduled for your ward.</p>
+            {% endfor %}
+
+            {% for meeting in past_meetings %}
+            <div class="meeting-item flex-column align-items-stretch" style="opacity: 0.85; background: #fafafa;">
+                <div class="d-flex gap-3 mb-3">
+                    <div class="meeting-date" style="filter: grayscale(1);">
+                        <div class="meeting-month bg-secondary text-uppercase">{{ meeting.meeting_date|date:"M" }}</div>
+                        <div class="meeting-day">{{ meeting.meeting_date|date:"d" }}</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold mb-1 text-muted" style="font-size: 0.95rem;">{{ meeting.title }}</h6>
+                        <span class="badge bg-light text-secondary border rounded-pill mb-1" style="font-size: 0.65rem;">CONCLUDED</span>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary w-100 fw-bold rounded-pill" 
+                            data-bs-toggle="modal" data-bs-target="#minutesModal{{ meeting.pk }}">
+                        <i class="bi bi-file-earmark-check me-1"></i> VIEW DECISIONS
+                    </button>
+                </div>
+
+                <!-- Minutes Modal -->
+                <div class="modal fade" id="minutesModal{{ meeting.pk }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+                            <div class="modal-header border-0 pb-0">
+                                <h5 class="modal-title fw-bold text-dark"><i class="bi bi-patch-check-fill text-success me-2"></i>Meeting Decisions</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body pt-3">
+                                <div class="mb-4">
+                                    <h6 class="text-uppercase text-muted fw-bold small mb-2" style="letter-spacing: 0.5px;">Summary</h6>
+                                    <p class="text-dark">{{ meeting.summary.summary_text|default:"No summary available for this meeting yet." }}</p>
+                                </div>
+                                <div class="p-3 bg-light rounded-4">
+                                    <h6 class="text-uppercase text-success fw-bold small mb-2" style="letter-spacing: 0.5px;">Key Decisions Taken</h6>
+                                    <div class="text-dark whitespace-pre-line">{{ meeting.summary.decisions_taken|default:"No specific decisions recorded." }}</div>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-0 pt-0">
+                                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             {% endfor %}
+
+            {% if not upcoming_meetings and not past_meetings %}
+            <div class="text-center py-4">
+                <i class="bi bi-calendar-x fs-1 text-muted opacity-50 d-block mb-3"></i>
+                <p class="text-muted small fw-medium">No Grama Sabha meetings scheduled for your ward.</p>
+            </div>
+            {% endif %}
         </div>
 
         <div class="mt-4 pt-3 border-top text-center">

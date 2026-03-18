@@ -29,6 +29,25 @@ class MeetingMinutesForm(forms.ModelForm):
             'minutes_pdf': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
+from .models import MeetingSummary
+
+class MeetingSummaryForm(forms.ModelForm):
+    class Meta:
+        model = MeetingSummary
+        fields = ['summary_text', 'decisions_taken']
+        widgets = {
+            'summary_text': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 5, 
+                'placeholder': 'Overall discussion summary...'
+            }),
+            'decisions_taken': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 5, 
+                'placeholder': 'List the specific decisions made (e.g., - Approval of new park)'
+            }),
+        }
+
 from .models import MeetingFeedback
 
 class MeetingFeedbackForm(forms.ModelForm):

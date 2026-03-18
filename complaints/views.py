@@ -30,7 +30,7 @@ CATEGORY_KEYWORDS = {
 EMERGENCY_KEYWORDS = [
     'danger', 'dangerous', 'immediately', 'urgent', 'accident',
     'emergency', 'fire', 'injury', 'hurt', 'hospital', 'death',
-    'electrocution', 'flood', 'collapse',
+    'electrocution', 'flood', 'collapse', 'broken', 'immediate',
 ]
 
 
@@ -43,10 +43,21 @@ def ai_categorize(text: str) -> str:
     return 'General'
 
 
+def ai_get_urgency_reason(text: str) -> str:
+    """
+    Scans text for emergency keywords and returns a comma-separated string 
+    of detected words, or None if no match.
+    """
+    text_lower = text.lower()
+    detected = [kw for kw in EMERGENCY_KEYWORDS if kw in text_lower]
+    if detected:
+        return ", ".join(detected)
+    return None
+
+
 def ai_escalate_priority(text: str) -> bool:
     """Return True if an emergency keyword is detected in the text."""
-    text_lower = text.lower()
-    return any(kw in text_lower for kw in EMERGENCY_KEYWORDS)
+    return ai_get_urgency_reason(text) is not None
 
 
 # ---------------------------------------------------------------------------
@@ -144,12 +155,15 @@ def report_complaint(request):
             complaint.category = ai_categorize(full_text)
 
             # --- SENTIMENT / EMERGENCY ESCALATION ---
-            if ai_escalate_priority(full_text):
+            urgency_reason = ai_get_urgency_reason(full_text)
+            if urgency_reason:
                 complaint.priority = 'high'
+                complaint.status = 'urgent_review'
+                complaint.ai_analysis_reason = f"AI Detected High Urgency Keywords: {urgency_reason}"
                 messages.warning(
                     request,
                     '⚠️ Your complaint has been automatically escalated to '
-                    '<strong>High Priority</strong> due to emergency keywords detected.',
+                    '<strong>High Priority (Urgent Review)</strong> due to emergency keywords detected.',
                     extra_tags='safe',
                 )
 
@@ -192,19 +206,36 @@ def complaint_list(request):
     Show complaints relevant to the logged-in user's role.
     Ward members / admins see all complaints in their ward;
     citizens see only their own.
+    Supports ?status= filtering.
     """
     privileged_roles = ('ward_member', 'panchayath_admin', 'field_worker')
+    status_filter = request.GET.get('status')
 
     if request.user.role in privileged_roles:
         complaints = Complaint.objects.filter(
             ward=request.user.ward
-        ).order_by('-created_at')
+        )
     else:
         complaints = Complaint.objects.filter(
             user=request.user
-        ).order_by('-created_at')
+        )
 
-    return render(request, 'complaints/list.html', {'complaints': complaints})
+    # Apply status filter if provided
+    if status_filter:
+        if status_filter == 'pending':
+            # For "Action Pending", include pending, in_progress, and urgent_review
+            complaints = complaints.filter(status__in=['pending', 'in_progress', 'urgent_review'])
+        elif status_filter == 'resolved':
+            complaints = complaints.filter(status='resolved')
+        else:
+            complaints = complaints.filter(status=status_filter)
+
+    complaints = complaints.order_by('-created_at')
+
+    return render(request, 'complaints/list.html', {
+        'complaints': complaints,
+        'current_filter': status_filter
+    })
 
 
 @login_required

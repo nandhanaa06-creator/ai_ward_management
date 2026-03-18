@@ -5,6 +5,7 @@ from accounts.models import Ward
 class Complaint(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
+        ('urgent_review', 'Urgent Review'),
         ('assigned', 'Assigned'),
         ('in_progress', 'In Progress'),
         ('resolved', 'Resolved'),
@@ -33,6 +34,7 @@ class Complaint(models.Model):
     category = models.CharField(max_length=100, blank=True, null=True) 
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     is_duplicate = models.BooleanField(default=False)
+    ai_analysis_reason = models.TextField(null=True, blank=True, help_text="Reason why AI prioritized or flagged this issue")
 
     # Workflow Tracking & Proof
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
