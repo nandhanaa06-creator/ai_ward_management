@@ -170,9 +170,7 @@
             You haven't filed any complaints yet. Start by clicking 'File New'.
             {% endif %}
         </p>
-        {% if current_filter %}
-        <a href="{% url 'complaint_list' %}" class="btn btn-primary rounded-pill px-4 mt-2">View All Complaints</a>
-        {% else %}
+        {% if user.role == 'citizen' %}
         <a href="{% url 'report_complaint' %}" class="btn btn-primary rounded-pill px-4 mt-2">File New Complaint</a>
         {% endif %}
     </div>

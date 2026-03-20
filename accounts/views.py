@@ -196,17 +196,22 @@ def dashboard(request):
 
     # ── Field Worker ───────────────────────────────────────────────
     if user.role == 'field_worker':
-        assigned = Complaint.objects.filter(
-            ward=user.ward, assigned_worker=user
-        ).order_by('-created_at')
-        return render(request, 'accounts/citizen_dashboard.html', {
-            'total':   assigned.count(),
-            'pending': assigned.filter(status='pending').count(),
-            'resolved': assigned.filter(status='resolved').count(),
-            'recent_complaints': assigned[:5],
-            'upcoming_meetings': [],
+        # Tasks assigned specifically to this worker
+        my_tasks = Complaint.objects.filter(
+            assigned_worker=user
+        ).exclude(status='resolved').exclude(status='rejected').order_by('-priority', '-created_at')
+        
+        resolved_tasks = Complaint.objects.filter(
+            assigned_worker=user, status='resolved'
+        ).count()
+
+        context = {
+            'total_assigned': my_tasks.count(),
+            'resolved_count': resolved_tasks,
+            'active_tasks': my_tasks,
             'user_ward': user.ward,
-        })
+        }
+        return render(request, 'accounts/worker_dashboard.html', context)
 
     # Fallback
     return render(request, 'accounts/citizen_dashboard.html', {})

@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+db.sqlite3
+
+# Environments
+venv/
+env/
+.env
+
+# Media and Static (Optional, but keeps repo clean)
+media/
+staticfiles/
+
+# OS generated files
+.DS_Store

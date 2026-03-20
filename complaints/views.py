@@ -200,30 +200,28 @@ def report_complaint(request):
     return render(request, 'complaints/report_issue.html', context)
 
 
-@login_required
 def complaint_list(request):
     """
     Show complaints relevant to the logged-in user's role.
-    Ward members / admins see all complaints in their ward;
-    citizens see only their own.
-    Supports ?status= filtering.
+    Admins see all complaints (Unified Spectrum);
+    Ward members see their ward's complaints;
+    Citizens see only their own.
     """
-    privileged_roles = ('ward_member', 'panchayath_admin', 'field_worker')
-    status_filter = request.GET.get('status')
-
-    if request.user.role in privileged_roles:
-        complaints = Complaint.objects.filter(
-            ward=request.user.ward
-        )
+    status_filter = request.GET.get('status', 'all')
+    privileged_roles = ('ward_member', 'field_worker')
+    
+    # ── Role-Based Queryset ──
+    if request.user.role == 'panchayath_admin' or request.user.is_superuser:
+        complaints = Complaint.objects.all()
+    elif request.user.role in privileged_roles:
+        complaints = Complaint.objects.filter(ward=request.user.ward)
     else:
-        complaints = Complaint.objects.filter(
-            user=request.user
-        )
+        complaints = Complaint.objects.filter(user=request.user)
 
-    # Apply status filter if provided
-    if status_filter:
+    # ── Unified Filtering Logic ──
+    if status_filter and status_filter != 'all':
         if status_filter == 'pending':
-            # For "Action Pending", include pending, in_progress, and urgent_review
+            # Include 'pending', 'in_progress', and 'urgent_review' for action-oriented lists
             complaints = complaints.filter(status__in=['pending', 'in_progress', 'urgent_review'])
         elif status_filter == 'resolved':
             complaints = complaints.filter(status='resolved')
@@ -240,9 +238,25 @@ def complaint_list(request):
 
 @login_required
 def complaint_detail(request, complaint_id):
-    """Simple detail view for a single complaint."""
+    """
+    Detailed view for a single complaint.
+    Now includes available field workers in the same ward with workload counts.
+    """
     complaint = get_object_or_404(Complaint, id=complaint_id)
-    return render(request, 'complaints/detail.html', {'complaint': complaint})
+    
+    # Simplified worker fetching as per request
+    from accounts.models import User
+    from django.db.models import Count, Q
+    
+    available_workers = User.objects.filter(role='field_worker').annotate(
+        active_tasks=Count('assigned_tasks', filter=Q(assigned_tasks__status__in=['assigned', 'in_progress', 'urgent_review']))
+    ).order_by('active_tasks')
+    
+    context = {
+        'complaint': complaint,
+        'available_workers': available_workers
+    }
+    return render(request, 'complaints/detail.html', context)
 
 
 @login_required
@@ -265,7 +279,7 @@ def worker_task_detail(request, complaint_id):
         'form': form,
         'history': complaint.status_history.all().order_by('-created_at')
     }
-    return render(request, 'complaints/worker_task_detail.html', context)
+    return render(request, 'complaints/tactical_view.html', context)
 
 
 @login_required
@@ -278,26 +292,27 @@ def complete_task(request, complaint_id):
     if request.method == 'POST':
         form = TaskCompletionForm(request.POST, request.FILES)
         if form.is_valid():
+            # Update complaint status
+            complaint.status = 'resolved'
+            complaint.resolution_image = form.cleaned_data['resolution_image']
+            complaint.resolution_report = form.cleaned_data['resolution_report']
+            complaint.save()
+
             # Create status history record
             ComplaintStatusHistory.objects.create(
                 complaint=complaint,
                 new_status='resolved',
-                description=form.cleaned_data['description'],
+                description=form.cleaned_data['resolution_report'],
                 proof_image=form.cleaned_data['resolution_image'],
                 actor=request.user
             )
             
-            # Update complaint status
-            complaint.status = 'resolved'
-            complaint.resolution_image = form.cleaned_data['resolution_image']
-            complaint.save()
-            
             messages.success(request, '✅ Task completed and marked as Resolved.')
-            return redirect('complaint_list')
+            return redirect('complaint_detail', complaint_id=complaint.id)
         else:
             messages.error(request, 'Please provide both a description and proof photo.')
             
-    return redirect('worker_task_detail', complaint_id=complaint.id)
+    return redirect('tactical_task_view', complaint_id=complaint.id)
 
 
 @login_required
@@ -371,9 +386,10 @@ def post_complaint_message(request, complaint_id):
 @login_required
 def reassign_worker(request, complaint_id):
     """
-    Admin control to reassign a complaint to a different user.
+    Admin control to reassign a complaint to a field worker.
+    Includes role guard and automatic status progression to 'in_progress'.
     """
-    if not (request.user.role == 'panchayath_admin' or request.user.is_superuser):
+    if not (request.user.role in ['panchayath_admin', 'ward_member'] or request.user.is_superuser):
          messages.error(request, 'Access denied. Administrative privileges required.')
          return redirect('dashboard')
          
@@ -384,15 +400,30 @@ def reassign_worker(request, complaint_id):
         try:
             from accounts.models import User
             worker = User.objects.get(id=worker_id)
+            
+            # ROLE GUARD: Only allow assignment to Field Workers
+            if worker.role != 'field_worker':
+                messages.error(request, f'Assignment failed: {worker.username} is not a verified field worker.')
+                return redirect('complaint_detail', complaint_id=complaint.id)
+
             complaint.assigned_worker = worker
-            complaint.status = 'assigned' # bump status back to assigned 
+            complaint.status = 'in_progress' # Automatically move to in_progress
             complaint.save()
-            messages.success(request, f'Complaint #{complaint.id} successfully reassigned to {worker.username}.')
+
+            # Record in history
+            from .models import ComplaintStatusHistory
+            ComplaintStatusHistory.objects.create(
+                complaint=complaint,
+                new_status='in_progress',
+                description=f"Task assigned to Authorized Worker: {worker.get_full_name() or worker.username}.",
+                actor=request.user
+            )
+
+            messages.success(request, f'Complaint #{complaint.id} successfully assigned to {worker.username}.')
         except User.DoesNotExist:
             messages.error(request, 'Selected worker does not exist.')
             
-    # Typically this redirects back to wherever the admin was
-    return redirect(request.META.get('HTTP_REFERER', 'admin_dashboard'))
+    return redirect('complaint_detail', complaint_id=complaint.id)
 
 
 @login_required

@@ -72,30 +72,24 @@ class ComplaintForm(forms.ModelForm):
 class TaskCompletionForm(forms.ModelForm):
     """
     Form for field workers to mark a task as resolved.
-    Requires proof image and description.
+    Requires proof image and completion report.
     """
-    resolution_image = forms.ImageField(
-        required=True,
-        label="Upload Completion Photo",
-        widget=forms.ClearableFileInput(attrs={
-            'class': 'form-control',
-            'accept': 'image/*',
-            'capture': 'environment', # Suggest camera on mobile
-        })
-    )
-
     class Meta:
         model = Complaint
-        fields = ['resolution_image']
-        # The widget for resolution_image is now defined directly on the field.
-        # No need to define it here in Meta.widgets.
-
-    description = forms.CharField(
-        widget=forms.Textarea(attrs={
-            'class': 'form-control',
-            'rows': 3,
-            'placeholder': 'Explain what was fixed and how...'
-        }),
-        label="Resolution Summary",
-        required=True
-    )
+        fields = ['resolution_image', 'resolution_report']
+        widgets = {
+            'resolution_image': forms.ClearableFileInput(attrs={
+                'class': 'form-control bg-dark text-white border-secondary',
+                'accept': 'image/*',
+                'capture': 'environment',
+            }),
+            'resolution_report': forms.Textarea(attrs={
+                'class': 'form-control bg-dark text-white border-secondary',
+                'rows': 4,
+                'placeholder': 'Explain what was fixed, materials used, and final result...'
+            }),
+        }
+        labels = {
+            'resolution_image': 'Upload Resolution Proof (After)',
+            'resolution_report': 'Work Completion Report',
+        }

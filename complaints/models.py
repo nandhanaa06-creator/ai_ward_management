@@ -60,6 +60,8 @@ class Complaint(models.Model):
     )
     # Allows workers to upload a "fixed" photo
     resolution_image = models.ImageField(upload_to='resolutions/', null=True, blank=True)
+    # Allows workers to provide a detailed work report
+    resolution_report = models.TextField(null=True, blank=True, help_text="Work completion summary by the field worker")
     # Allows the user to rate the resolution
     citizen_rating = models.PositiveSmallIntegerField(null=True, blank=True, help_text="1-5 stars")
 

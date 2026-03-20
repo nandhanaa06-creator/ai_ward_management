@@ -20,20 +20,27 @@
         align-items: center;
     }
 
-    .status-banner.pending {
-        background: #6c757d;
+    .status-banner.pending { background: #6c757d; }
+    .status-banner.in_progress { 
+        background: #0ea5e9; 
+        box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
+        animation: glow-blue 2s infinite alternate;
+    }
+    .status-banner.resolved { background: #198754; }
+    .status-banner.rejected { background: #dc3545; }
+
+    @keyframes glow-blue {
+        from { box-shadow: 0 0 5px rgba(14, 165, 233, 0.4); }
+        to { box-shadow: 0 0 20px rgba(14, 165, 233, 0.8); }
     }
 
-    .status-banner.in_progress {
-        background: #0dcaf0;
-    }
-
-    .status-banner.resolved {
-        background: #198754;
-    }
-
-    .status-banner.rejected {
-        background: #dc3545;
+    .glass-dropdown {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        color: #1e293b !important;
+        padding-left: 1rem !important;
     }
 
     .img-showcase {
@@ -58,45 +65,17 @@
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
-
-    /* Star Rating Styles */
-    .rating-group {
-        display: flex;
-        align-items: center;
-        gap: .5rem;
-        flex-direction: row-reverse;
-        justify-content: flex-end;
-    }
-
-    .rating-group input {
-        display: none;
-    }
-
-    .rating-group label {
-        font-size: 2rem;
-        color: #ced4da;
-        cursor: pointer;
-        transition: color .2s;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, .1);
-    }
-
-    .rating-group label:hover,
-    .rating-group label:hover~label,
-    .rating-group input:checked~label {
-        color: #ffc107;
-    }
 </style>
 
 <div class="row justify-content-center">
     <div class="col-lg-8">
-
         {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endfor %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
         {% endif %}
 
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -106,258 +85,150 @@
             </a>
         </div>
 
-        <!-- MAIN DETAIL CARD -->
         <div class="detail-card">
             <div class="status-banner {% if complaint.status == 'urgent_review' %}bg-danger shadow-lg{% else %}{{ complaint.status }}{% endif %}">
                 <div><i class="bi bi-info-circle-fill me-2"></i>Status: {{ complaint.get_status_display }}</div>
                 {% if complaint.priority == 'high' %}
-                <span class="badge bg-light text-danger border border-danger shadow-sm">HIGH PRIORITY ⚠️</span>
+                    <span class="badge bg-light text-danger border border-danger shadow-sm">HIGH PRIORITY ⚠️</span>
                 {% endif %}
             </div>
 
             {% if complaint.ai_analysis_reason %}
-            <div class="ai-analysis-strip px-4 py-2 d-flex align-items-center gap-2" 
-                 style="background: #e0f2fe; border-bottom: 2px solid #bae6fd;">
-                <span class="badge rounded-pill px-3 py-1 shadow-sm" style="background: #0ea5e9; color: #fff; font-size: 0.72rem; letter-spacing: 0.05em;">AI ANALYSIS</span>
-                <span class="fw-bold small" style="color: #0369a1;"><i class="bi bi-robot me-1"></i> {{ complaint.ai_analysis_reason }}</span>
-            </div>
+                <div class="ai-analysis-strip px-4 py-2 d-flex align-items-center gap-2" style="background: #e0f2fe; border-bottom: 2px solid #bae6fd;">
+                    <span class="badge rounded-pill px-3 py-1 shadow-sm" style="background: #0ea5e9; color: #fff; font-size: 0.72rem; letter-spacing: 0.05em;">AI ANALYSIS</span>
+                    <span class="fw-bold small" style="color: #0369a1;"><i class="bi bi-robot me-1"></i> {{ complaint.ai_analysis_reason }}</span>
+                </div>
             {% endif %}
 
             {% if complaint.image %}
-            <img src="{{ complaint.image.url }}" class="img-showcase" alt="Complaint Issue">
+                <img src="{{ complaint.image.url }}" class="img-showcase" alt="Complaint Issue">
             {% endif %}
 
             <div class="p-4">
                 <h4 class="fw-bold">{{ complaint.title }}</h4>
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    <span class="badge bg-light text-dark border"><i class="bi bi-compass"></i> {{ complaint.ward
-                        }}</span>
-                    {% if complaint.category %}<span class="badge bg-light text-primary border"><i
-                            class="bi bi-tag"></i> {{ complaint.category }}</span>{% endif %}
-                    <span class="badge bg-light text-secondary border"><i class="bi bi-calendar"></i> {{
-                        complaint.created_at|date:"M d, Y" }}</span>
+                    <span class="badge bg-light text-dark border"><i class="bi bi-compass"></i> {{ complaint.ward }}</span>
+                    {% if complaint.category %}
+                        <span class="badge bg-light text-primary border"><i class="bi bi-tag"></i> {{ complaint.category }}</span>
+                    {% endif %}
+                    <span class="badge bg-light text-secondary border"><i class="bi bi-calendar"></i> {{ complaint.created_at|date:"M d, Y" }}</span>
                 </div>
 
                 <p class="text-secondary">{{ complaint.description|linebreaks }}</p>
 
                 {% if complaint.address_extra %}
-                <p class="mb-0 fs-sm text-muted"><i class="bi bi-geo-alt"></i> <strong>Landmark:</strong> {{
-                    complaint.address_extra }}</p>
+                    <p class="mb-0 fs-sm text-muted"><i class="bi bi-geo-alt"></i> <strong>Landmark:</strong> {{ complaint.address_extra }}</p>
                 {% endif %}
 
-                <!-- WORKER ACTIONS -->
                 {% if request.user.role == 'field_worker' or request.user.role == 'ward_member' %}
-                <hr class="mt-4">
-                <div class="d-flex gap-2">
-                    {% if complaint.status != 'resolved' %}
-                    <a href="{% url 'worker_task_detail' complaint.id %}" class="btn btn-success">
-                        <i class="bi bi-check2-circle"></i> Go to Tactical Task View
-                    </a>
+                    <hr class="mt-4">
+                    <div class="d-flex gap-2">
+                        {% if complaint.status != 'resolved' and complaint.status != 'rejected' %}
+                            <a href="{% url 'tactical_task_view' complaint.id %}" class="btn btn-dark shadow-sm px-4 rounded-pill border-0" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+                                <i class="bi bi-shield-shaded text-info me-2"></i> Go to Tactical Task View
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if request.user.role == 'panchayath_admin' or request.user.role == 'ward_member' or request.user.is_superuser %}
+                    <hr class="mt-4">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-person-lines-fill text-primary me-2"></i>Assign Authorized Worker</h6>
+                    <form action="{% url 'reassign_worker' complaint.id %}" method="post" class="d-flex gap-2 align-items-center">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-badge"></i></span>
+                            <select name="worker_id" class="form-select glass-dropdown" required>
+                                <option value="">Select Worker...</option>
+                                {% for worker in available_workers %}
+                                    <option value="{{ worker.id }}">
+                                        {{ worker.get_full_name|default:worker.username }} ({{ worker.active_tasks }} active tasks)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary fw-medium px-4" style="border-top-right-radius: 12px; border-bottom-right-radius: 12px;">Assign</button>
+                        </div>
+                    </form>
+                    {% if complaint.assigned_worker %}
+                        <p class="small text-muted mt-2 mb-0">Assigned to: <span class="badge bg-light text-primary border rounded-pill">{{ complaint.assigned_worker.get_full_name|default:complaint.assigned_worker.username }}</span></p>
+                    {% else %}
+                        <p class="small text-danger mt-2 mb-0 fw-medium"><i class="bi bi-exclamation-circle me-1"></i> No worker assigned yet.</p>
                     {% endif %}
-                </div>
                 {% endif %}
-
-                <!-- ADMIN REASSIGNMENT CONTROL -->
-                {% if request.user.role == 'panchayath_admin' or request.user.is_superuser %}
-                <hr class="mt-4">
-                <h6 class="fw-bold mb-3"><i class="bi bi-person-lines-fill text-primary me-2"></i>Reassign Worker (Admin
-                    Control)</h6>
-                <form action="{% url 'reassign_worker' complaint.id %}" method="post"
-                    class="d-flex gap-2 align-items-center">
-                    {% csrf_token %}
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-badge"></i></span>
-                        <input type="number" name="worker_id" class="form-control" placeholder="Worker User ID"
-                            required>
-                        <button type="submit" class="btn btn-primary fw-medium px-4">Assign Task</button>
-                    </div>
-                </form>
-                {% if complaint.assigned_worker %}
-                <p class="small text-muted mt-2 mb-0">Currently assigned to: <strong>{{
-                        complaint.assigned_worker.username }}</strong></p>
-                {% else %}
-                <p class="small text-danger mt-2 mb-0 fw-medium"><i class="bi bi-exclamation-circle me-1"></i> Not
-                    currently assigned to any worker.</p>
-                {% endif %}
-                {% endif %}
-
             </div>
-        </div> <!-- /detail-card -->
-
-        <!-- RESOLUTION / PROOF CARD -->
-        {% if complaint.status == 'resolved' %}
-        <div class="proof-card shadow-sm">
-            <h5 class="fw-bold text-success mb-3"><i class="bi bi-patch-check-fill me-2"></i>Resolution Proof</h5>
-
-            {% if complaint.resolution_image %}
-            <div class="row align-items-center">
-                <div class="col-md-5">
-                    <a href="{{ complaint.resolution_image.url }}" target="_blank">
-                        <img src="{{ complaint.resolution_image.url }}" class="proof-img border" alt="Resolution Proof">
-                    </a>
-                </div>
-                <div class="col-md-7">
-                    <div class="bg-white p-3 rounded-3 border">
-                        <h6 class="fw-bold text-dark small text-uppercase mb-2">Resolution Note</h6>
-                        {% with latest_resolution=complaint.status_history.first %}
-                            <p class="text-secondary small mb-0">{{ latest_resolution.description|default:"Task resolved successfully." }}</p>
-                        {% endwith %}
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <p class="text-muted fst-italic">Marked resolved, but no photo was attached.</p>
-            {% endif %}
-
-            <p class="text-sm text-muted mt-3 mb-0"><strong>Resolved on:</strong> {{ complaint.updated_at|date:"M d, Y - H:i" }}</p>
         </div>
+
+        {% if complaint.status == 'resolved' %}
+            <div class="proof-card shadow-sm">
+                <h5 class="fw-bold text-success mb-3"><i class="bi bi-patch-check-fill me-2"></i>Resolution Proof</h5>
+                {% if complaint.resolution_image %}
+                    <div class="row align-items-center">
+                        <div class="col-md-5">
+                            <a href="{{ complaint.resolution_image.url }}" target="_blank">
+                                <img src="{{ complaint.resolution_image.url }}" class="proof-img border" alt="Resolution Proof">
+                            </a>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="bg-white p-3 rounded-3 border">
+                                <h6 class="fw-bold text-dark small text-uppercase mb-2">Work Completion Report</h6>
+                                <p class="text-secondary small mb-0">{{ complaint.resolution_report|default:"Task resolved successfully." }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted fst-italic">Marked resolved, but no photo was attached.</p>
+                {% endif %}
+            </div>
         {% endif %}
 
-        <!-- STATUS HISTORY / AUDIT TRAIL -->
         <div class="card mt-4 border-0 shadow-sm" style="border-radius:24px;">
             <div class="card-header bg-white border-bottom py-3">
-                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-journal-check text-success me-2"></i>Resolution History & Audit Trail</h5>
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-journal-check text-success me-2"></i>Resolution History</h5>
             </div>
             <div class="card-body p-4">
                 <div class="timeline-compact">
                     {% for entry in complaint.status_history.all|dictsortreversed:"created_at" %}
-                    <div class="timeline-item border-start ps-4 pb-4 position-relative">
-                        <div class="timeline-dot position-absolute bg-success rounded-circle" style="width: 12px; height: 12px; left: -6px; top: 0;"></div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold text-dark fs-sm">Status: {{ entry.new_status|title }}</span>
-                            <span class="text-muted small">{{ entry.created_at|date:"M d, H:i" }}</span>
+                        <div class="timeline-item border-start ps-4 pb-4 position-relative">
+                            <div class="timeline-dot position-absolute bg-success rounded-circle" style="width: 12px; height: 12px; left: -6px; top: 0;"></div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-bold text-dark fs-sm">{{ entry.new_status|title }}</span>
+                                <span class="text-muted small">{{ entry.created_at|date:"M d, H:i" }}</span>
+                            </div>
+                            <div class="text-secondary small mb-2">
+                                {% if entry.actor.role == 'citizen' %}
+                                    Reported: {{ entry.actor.username|title }}
+                                {% else %}
+                                    Authorized: {{ entry.actor.get_full_name|default:entry.actor.username|title }}
+                                {% endif %}
+                            </div>
+                            {% if entry.description %}
+                                <div class="bg-light p-2 rounded small">{{ entry.description }}</div>
+                            {% endif %}
                         </div>
-                        <div class="text-secondary small mb-2">Authenticated By: {{ entry.actor.username|title }}</div>
-                        {% if entry.description %}
-                        <div class="bg-light p-3 rounded-3 border small mb-2">
-                            {{ entry.description }}
-                        </div>
-                        {% endif %}
-                        {% if entry.proof_image %}
-                        <div class="rounded-3 overflow-hidden border" style="max-width: 120px;">
-                            <a href="{{ entry.proof_image.url }}" target="_blank">
-                                <img src="{{ entry.proof_image.url }}" class="img-fluid" alt="Proof">
-                            </a>
-                        </div>
-                        {% endif %}
-                    </div>
                     {% empty %}
-                    <div class="text-center py-4">
-                        <p class="text-muted small mb-0">Initial assignment pending.</p>
-                    </div>
+                        <p class="text-muted text-center small">No history available.</p>
                     {% endfor %}
                 </div>
             </div>
         </div>
 
-        <!-- CITIZEN FEEDBACK FORM -->
-        {% if request.user == complaint.user %}
-        <div class="card mt-4 p-4 border-0 shadow-sm" style="border-radius:24px;">
-            {% if complaint.citizen_rating %}
-            <h5 class="fw-bold mb-2">Your Feedback</h5>
-            <div class="text-warning fs-4 mb-2">
-                {% for i in "12345" %}
-                {% if forloop.counter <= complaint.citizen_rating %} <i class="bi bi-star-fill"></i>
-                    {% else %}
-                    <i class="bi bi-star"></i>
-                    {% endif %}
-                    {% endfor %}
-            </div>
-            <p class="text-muted fs-sm mb-0">Thank you for rating the service quality.</p>
-            {% else %}
-            <h5 class="fw-bold mb-1">Verify & Rate Resolution</h5>
-            <p class="text-muted fs-sm mb-3">Are you satisfied with this work? A rating of 1 or 2 stars will
-                automatically re-open the issue for review.</p>
-
-            <form action="{% url 'submit_feedback' complaint.id %}" method="post">
-                {% csrf_token %}
-                <div class="rating-group mb-3">
-                    <input type="radio" id="star5" name="rating" value="5" required />
-                    <label for="star5" title="Excellent"><i class="bi bi-star-fill"></i></label>
-
-                    <input type="radio" id="star4" name="rating" value="4" />
-                    <label for="star4" title="Good"><i class="bi bi-star-fill"></i></label>
-
-                    <input type="radio" id="star3" name="rating" value="3" />
-                    <label for="star3" title="Satisfactory"><i class="bi bi-star-fill"></i></label>
-
-                    <input type="radio" id="star2" name="rating" value="2" />
-                    <label for="star2" title="Needs Improvement"><i class="bi bi-star-fill"></i></label>
-
-                    <input type="radio" id="star1" name="rating" value="1" />
-                    <label for="star1" title="Poor"><i class="bi bi-star-fill"></i></label>
-                </div>
-                <button type="submit" class="btn btn-warning fw-bold px-4 rounded-pill">Submit Feedback</button>
-            </form>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {% endif %}
-
-        <!-- ADMIN-CITIZEN MESSAGE THREAD -->
         <div class="card mt-4 border-0 shadow-sm" style="border-radius:24px; overflow: hidden;">
             <div class="card-header bg-white border-bottom py-3">
-                <h5 class="fw-bold mb-0"><i class="bi bi-chat-text-fill text-primary me-2"></i>Communication Thread</h5>
+                <h5 class="fw-bold mb-0"><i class="bi bi-chat-text-fill text-primary me-2"></i>Messages</h5>
             </div>
-
-            <div class="card-body p-0" style="background: #f8fafc;">
-                <!-- Messages List -->
-                <div class="messages-container p-4">
-                    {% for msg in complaint.messages.all %}
-                    <div
-                        class="d-flex gap-3 mb-4 {% if msg.sender.role == 'panchayath_admin' %}flex-row-reverse{% endif %}">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm"
-                            style="width: 40px; height: 40px; 
-                                    {% if msg.sender.role == 'panchayath_admin' %}background: #1a237e;{% elif msg.sender.role == 'ward_member' %}background: #065f46;{% else %}background: #64748b;{% endif %}">
-                            {{ msg.sender.username|make_list|first|upper }}
-                        </div>
-                        <div class="message-bubble p-3 rounded-4 shadow-sm"
-                            style="max-width: 80%; {% if msg.sender.role == 'panchayath_admin' %}background: #eef2ff; border: 1px solid #e0e7ff; border-top-right-radius: 4px;{% else %}background: #fff; border: 1px solid #f1f5f9; border-top-left-radius: 4px;{% endif %}">
-                            <div class="d-flex justify-content-between align-items-center mb-1 gap-4">
-                                <span
-                                    class="fw-bold fs-sm {% if msg.sender.role == 'panchayath_admin' %}text-primary{% else %}text-dark{% endif %}">
-                                    {{ msg.sender.username }}
-                                    {% if msg.sender.role != 'citizen' %}<i class="bi bi-patch-check-fill ms-1"></i>{%
-                                    endif %}
-                                </span>
-                                <span class="text-muted" style="font-size: 0.7rem;">{{ msg.created_at|date:"M d, H:i"
-                                    }}</span>
-                            </div>
-                            <p class="mb-0 text-secondary" style="font-size: 0.9rem;">{{ msg.message|linebreaksbr }}</p>
+            <div class="card-body p-4" style="background: #f8fafc;">
+                {% for msg in complaint.messages.all %}
+                    <div class="mb-3 {% if msg.sender.role != 'citizen' %}text-end{% endif %}">
+                        <div class="d-inline-block p-3 rounded-4 shadow-sm" style="max-width: 80%; {% if msg.sender.role != 'citizen' %}background: #eef2ff;{% else %}background: #fff;{% endif %}">
+                            <div class="fw-bold small mb-1">{{ msg.sender.username }}</div>
+                            <p class="mb-0 small">{{ msg.message }}</p>
                         </div>
                     </div>
-                    {% empty %}
-                    <div class="text-center py-4">
-                        <i class="bi bi-chat-dots fs-3 text-muted opacity-25 d-block mb-2"></i>
-                        <p class="text-muted fs-sm mb-0">No messages in this thread yet.</p>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Reply Input (Only show if privileged or original citizen) -->
-                {% if request.user == complaint.user or request.user.role in 'panchayath_admin,ward_member' %}
-                <div class="p-3 bg-white border-top">
-                    <form action="{% url 'post_complaint_message' complaint.id %}" method="post">
-                        {% csrf_token %}
-                        <div class="input-group align-items-end"
-                            style="background: #f1f5f9; border-radius: 12px; padding: 4px;">
-                            <textarea name="message" class="form-control border-0 bg-transparent shadow-none" rows="1"
-                                placeholder="Type a message..." required style="resize: none;"></textarea>
-                            <button
-                                class="btn btn-primary rounded-circle ms-2 shadow-sm d-flex align-items-center justify-content-center"
-                                style="width: 40px; height: 40px;" type="submit">
-                                <i class="bi bi-send-fill fs-6" style="margin-left: -2px;"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                {% endif %}
+                {% empty %}
+                    <p class="text-muted text-center small">No messages yet.</p>
+                {% endfor %}
             </div>
         </div>
-
-        {% endif %}
-
     </div>
 </div>
 {% endblock %}

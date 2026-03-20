@@ -435,28 +435,32 @@
             </tr>
         </thead>
         <tbody>
-            {% for c in complaints|slice:":10" %}
-            <tr style="border-bottom: 1px solid var(--glass-border);">
-                <td class="p-3 text-dim">#{{ c.id }}</td>
-                <td class="p-3">WARD_{{ c.ward.ward_number }}</td>
-                <td class="p-3">
-                    <div class="fw-bold">{{ c.title }}</div>
-                    <div class="text-dim x-small">{{ c.category }}</div>
-                </td>
-                <td class="p-3">
-                    <span class="badge border border-{{ c.priority }} text-{{ c.priority }} bg-transparent">
-                        {{ c.get_priority_display }}
-                    </span>
-                </td>
-                <td class="p-3">
-                    <span class="text-{{ c.status }} small fw-bold">{{ c.get_status_display }}</span>
-                </td>
-                <td class="p-3">
-                    <a href="{% url 'complaint_detail' c.id %}" class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill">LINK</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
+    {% for c in complaints|slice:":10" %}
+    <tr style="border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s;" 
+        onclick="window.location='{% url 'complaint_detail' c.id %}';"
+        onmouseover="this.style.background='rgba(255,255,255,0.05)'" 
+        onmouseout="this.style.background='transparent'">
+        
+        <td class="p-3 text-dim">#{{ c.id }}</td>
+        <td class="p-3">WARD_{{ c.ward.ward_number }}</td>
+        <td class="p-3">
+            <div class="fw-bold">{{ c.title }}</div>
+            <div class="text-dim x-small">{{ c.category }}</div>
+        </td>
+        <td class="p-3">
+            <span class="badge border border-{{ c.priority }} text-{{ c.priority }} bg-transparent">
+                {{ c.get_priority_display }}
+            </span>
+        </td>
+        <td class="p-3">
+            <span class="text-{{ c.status }} small fw-bold">{{ c.get_status_display }}</span>
+        </td>
+        <td class="p-3">
+            <a href="{% url 'complaint_detail' c.id %}" class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill">LINK</a>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
     </table>
 </div>
 
