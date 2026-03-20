@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 24px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-pill {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .worker-table th {
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        color: #475569;
+    }
+
+    .worker-row {
+        transition: all 0.2s;
+    }
+
+    .worker-row:hover {
+        background: #f1f5f9 !important;
+    }
+
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #1e293b, #334155);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-weight: 700;
+    }
+
+    .form-control-glass {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: all 0.2s;
+    }
+
+    .form-control-glass:focus {
+        background: #fff;
+        border-color: #1a237e;
+        box-shadow: 0 0 0 4px rgba(26, 35, 126, 0.1);
+    }
+</style>
+
+<div class="row align-items-center mb-4">
+    <div class="col">
+        <h2 class="fw-bold mb-1">Worker Management</h2>
+        <p class="text-muted small mb-0">Recruit and monitor authorized field personnel.</p>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary d-flex align-items-center gap-2 px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#recruitWorkerModal">
+            <i class="bi bi-person-plus-fill"></i> Recruit New Worker
+        </button>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show border-0 shadow-sm" style="border-radius:12px;">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="glass-card p-0 overflow-hidden mb-4">
+    <div class="table-responsive">
+        <table class="table worker-table mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th class="ps-4">Worker Profile</th>
+                    <th>Worker ID</th>
+                    <th>Assigned Ward</th>
+                    <th>Workload</th>
+                    <th>Joined date</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for worker in workers %}
+                <tr class="worker-row">
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar-circle">
+                                {{ worker.username|make_list|first|upper }}
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark">{{ worker.get_full_name|default:worker.username }}</div>
+                                <div class="text-muted small">{{ worker.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><code class="text-primary fw-bold">WID-{{ worker.id }}</code></td>
+                    <td>
+                        {% if worker.ward %}
+                        <span class="badge bg-light text-primary border rounded-pill">{{ worker.ward }}</span>
+                        {% else %}
+                        <span class="text-muted small fst-italic">Global / Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="stat-pill">
+                                <i class="bi bi-tools text-primary me-1"></i> {{ worker.active_tasks }} Active
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="text-muted small">{{ worker.date_joined|date:"M d, Y" }}</span></td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-light btn-sm rounded-pill px-3 border shadow-none">View History</button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <i class="bi bi-people fs-1 text-muted opacity-25 d-block mb-3"></i>
+                        <p class="text-muted mb-0">No field workers recruited yet.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Recruit Worker Modal -->
+<div class="modal fade" id="recruitWorkerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-0">
+            <div class="modal-header border-bottom-0 pb-0 px-4 pt-4">
+                <h5 class="fw-bold">New Worker Recruitment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">First Name</label>
+                            <input type="text" name="first_name" class="form-control form-control-glass" placeholder="e.g. Rahul" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Last Name</label>
+                            <input type="text" name="last_name" class="form-control form-control-glass" placeholder="e.g. Kumar" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Username</label>
+                            <input type="text" name="username" class="form-control form-control-glass" placeholder="worker_name" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Email Address</label>
+                            <input type="email" name="email" class="form-control form-control-glass" placeholder="worker@example.com" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Initial Password</label>
+                            <input type="password" name="password" class="form-control form-control-glass" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Assign to Ward (Optional)</label>
+                            <select name="ward" class="form-select form-control-glass">
+                                <option value="">Global / Float</option>
+                                {% for ward in wards %}
+                                <option value="{{ ward.id }}">{{ ward }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Register Worker</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

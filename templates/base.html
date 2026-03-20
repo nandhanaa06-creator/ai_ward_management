@@ -470,6 +470,13 @@
                 <i class="bi bi-map-fill"></i>
                 <span>Manage Wards</span>
             </a>
+            {% if user.role == "panchayath_admin" or user.is_superuser %}
+            <a href="{% url 'manage_workers' %}"
+                class="nav-item-link {% if request.resolver_match.url_name == 'manage_workers' %}active{% endif %}">
+                <i class="bi bi-people-fill"></i>
+                <span>Manage Workers</span>
+            </a>
+            {% endif %}
             {% endif %}
         </div>
 

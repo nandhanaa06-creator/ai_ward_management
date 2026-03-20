@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
 from django.db.models import Count, Avg, Q
 from django.utils import timezone
 
@@ -219,6 +220,53 @@ def dashboard(request):
 
     # Fallback
     return render(request, 'accounts/citizen_dashboard.html', {})
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'panchayath_admin' or u.is_superuser)
+def manage_workers(request):
+    """
+    Worker management hub for Panchayath Admins.
+    Allows listing all workers and recruiting new ones.
+    """
+    from django.db.models import Count, Q
+    from .models import User, Ward
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        ward_id = request.POST.get('ward')
+        
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f"Error: Username '{username}' is already taken.")
+        else:
+            ward = Ward.objects.get(id=ward_id) if ward_id else None
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                role='field_worker',
+                ward=ward
+            )
+            messages.success(request, f"Successfully recruited {user.get_full_name() or user.username} as an Authorized Field Worker.")
+            return redirect('manage_workers')
+
+    # Fetch all workers with active task counts
+    workers = User.objects.filter(role='field_worker').annotate(
+        active_tasks=Count('assigned_tasks', filter=Q(assigned_tasks__status__in=['assigned', 'in_progress', 'urgent_review']))
+    ).order_by('-date_joined')
+    
+    wards = Ward.objects.all()
+    
+    return render(request, 'accounts/manage_workers.html', {
+        'workers': workers,
+        'wards': wards
+    })
 
 from datetime import timedelta, date
 import random
