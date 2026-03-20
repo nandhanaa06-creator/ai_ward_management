@@ -160,6 +160,10 @@ def _ward_member_context(user):
 def dashboard(request):
     user = request.user
 
+    # ── Superuser ─────────────────────────────────────────────────
+    if user.is_superuser:
+        return redirect('admin_dashboard')
+
     # ── Citizen ────────────────────────────────────────────────────
     if user.role == 'citizen':
         my_complaints = Complaint.objects.filter(user=user)

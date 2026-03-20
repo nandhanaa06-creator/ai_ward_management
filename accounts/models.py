@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
 from django.db import models
 
 class Ward(models.Model):
@@ -8,6 +8,25 @@ class Ward(models.Model):
 
     def __str__(self):
         return f"Ward {self.ward_number} - {self.ward_name}"
+
+class CustomUserManager(DjangoUserManager):
+    """
+    Ensure superusers always get the panchayath_admin role so they can
+    access the custom admin dashboard without manual role editing.
+    """
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        # Force the admin role for superusers
+        extra_fields.setdefault('role', 'panchayath_admin')
+        return super().create_superuser(username, email, password, **extra_fields)
+
+    def create_user(self, username, email=None, password=None, **extra_fields):
+        # If a caller sets is_superuser manually, align the role as well.
+        if extra_fields.get('is_superuser'):
+            extra_fields.setdefault('role', 'panchayath_admin')
+        return super().create_user(username, email, password, **extra_fields)
+
 
 class User(AbstractUser):
     ROLE_CHOICES = (
@@ -26,6 +45,8 @@ class User(AbstractUser):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
+    objects = CustomUserManager()
+
     # Helper methods for your custom admin panel logic
     def is_ward_member(self):
         return self.role == 'ward_member'
@@ -35,6 +56,12 @@ class User(AbstractUser):
 
     def is_panchayath_admin(self):
         return self.role == 'panchayath_admin'
+
+    def save(self, *args, **kwargs):
+        # Keep superusers aligned with the admin role to avoid access issues
+        if self.is_superuser and self.role != 'panchayath_admin':
+            self.role = 'panchayath_admin'
+        super().save(*args, **kwargs)
 
 class CitizenProfile(models.Model):
     GENDER_CHOICES = (('M', 'Male'), ('F', 'Female'), ('O', 'Other'))
