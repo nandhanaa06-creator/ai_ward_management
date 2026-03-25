@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-star-fill me-2"></i>Submit Feedback</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Complaint Details -->
+                    <div class="alert alert-info">
+                        <h6 class="fw-bold mb-2">Complaint Details</h6>
+                        <p class="mb-1"><strong>ID:</strong> #{{ complaint.id }}</p>
+                        <p class="mb-1"><strong>Title:</strong> {{ complaint.title }}</p>
+                        <p class="mb-1"><strong>Status:</strong> <span class="badge bg-success">{{ complaint.get_status_display }}</span></p>
+                        <p class="mb-0"><strong>Resolved On:</strong> {{ complaint.updated_at|date:"M d, Y" }}</p>
+                    </div>
+
+                    <!-- Feedback Form -->
+                    <form method="post" action="{% url 'submit_feedback' complaint.id %}">
+                        {% csrf_token %}
+                        
+                        <!-- Rating Section -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">How satisfied are you with the resolution? <span class="text-danger">*</span></label>
+                            <div class="rating-container text-center py-3">
+                                <div class="star-rating" id="starRating">
+                                    <i class="bi bi-star fs-1 star" data-rating="1"></i>
+                                    <i class="bi bi-star fs-1 star" data-rating="2"></i>
+                                    <i class="bi bi-star fs-1 star" data-rating="3"></i>
+                                    <i class="bi bi-star fs-1 star" data-rating="4"></i>
+                                    <i class="bi bi-star fs-1 star" data-rating="5"></i>
+                                </div>
+                                <input type="hidden" name="rating" id="ratingInput" required>
+                                <p class="mt-2 text-muted" id="ratingText">Click on stars to rate</p>
+                            </div>
+                        </div>
+
+                        <!-- Feedback Text -->
+                        <div class="mb-4">
+                            <label for="feedback_text" class="form-label fw-bold">Your Feedback <span class="text-danger">*</span></label>
+                            <textarea 
+                                class="form-control" 
+                                id="feedback_text" 
+                                name="feedback_text" 
+                                rows="5" 
+                                placeholder="Please share your experience with the resolution process..."
+                                required
+                            ></textarea>
+                            <small class="text-muted">Your feedback helps us improve our services.</small>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send-fill me-2"></i>Submit Feedback
+                            </button>
+                            <a href="{% url 'complaint_detail' complaint.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.star {
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin: 0 5px;
+}
+
+.star:hover,
+.star.active {
+    color: #ffc107;
+}
+
+.rating-container {
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('.star');
+    const ratingInput = document.getElementById('ratingInput');
+    const ratingText = document.getElementById('ratingText');
+    
+    const ratingLabels = {
+        1: '⭐ Poor',
+        2: '⭐⭐ Fair',
+        3: '⭐⭐⭐ Good',
+        4: '⭐⭐⭐⭐ Very Good',
+        5: '⭐⭐⭐⭐⭐ Excellent'
+    };
+    
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = this.getAttribute('data-rating');
+            ratingInput.value = rating;
+            ratingText.textContent = ratingLabels[rating];
+            
+            // Update star colors
+            stars.forEach(s => {
+                const starRating = s.getAttribute('data-rating');
+                if (starRating <= rating) {
+                    s.classList.remove('bi-star');
+                    s.classList.add('bi-star-fill', 'active');
+                } else {
+                    s.classList.remove('bi-star-fill', 'active');
+                    s.classList.add('bi-star');
+                }
+            });
+        });
+        
+        // Hover effect
+        star.addEventListener('mouseenter', function() {
+            const rating = this.getAttribute('data-rating');
+            stars.forEach(s => {
+                const starRating = s.getAttribute('data-rating');
+                if (starRating <= rating) {
+                    s.classList.add('active');
+                }
+            });
+        });
+        
+        star.addEventListener('mouseleave', function() {
+            const currentRating = ratingInput.value;
+            stars.forEach(s => {
+                const starRating = s.getAttribute('data-rating');
+                if (!currentRating || starRating > currentRating) {
+                    s.classList.remove('active');
+                }
+            });
+        });
+    });
+});
+</script>
+
+{% endblock %}

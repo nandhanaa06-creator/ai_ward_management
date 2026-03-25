@@ -92,3 +92,19 @@ class ComplaintStatusHistory(models.Model):
 
     def __str__(self):
         return f"{self.complaint.id} moved to {self.new_status} by {self.actor.username}"
+
+
+class ComplaintFeedback(models.Model):
+    complaint = models.OneToOneField(Complaint, on_delete=models.CASCADE, related_name='feedback')
+    citizen = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='feedbacks')
+    rating = models.PositiveSmallIntegerField(help_text="Rating from 1 to 5")
+    feedback_text = models.TextField(help_text="Citizen's feedback on resolution")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Complaint Feedback"
+        verbose_name_plural = "Complaint Feedbacks"
+
+    def __str__(self):
+        return f"Feedback for Complaint #{self.complaint.id} - {self.rating} stars"

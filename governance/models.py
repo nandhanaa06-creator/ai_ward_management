@@ -62,7 +62,7 @@ class MeetingSummary(models.Model):
         return f"Summary for {self.meeting.title}"
 
 class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='governance_notifications')
     title = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False)

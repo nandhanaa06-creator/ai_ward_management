@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold mb-1">Reports & Analytics Dashboard</h2>
+    <p class="text-muted">View analytics and export comprehensive reports in Excel and PDF formats</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted mb-1 small">Total Complaints</p>
+                        <h3 class="fw-bold mb-0">{{ total_complaints }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-exclamation-square-fill text-primary fs-4"></i>
+                    </div>
+                </div>
+                <small class="text-muted">Available for export</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted mb-1 small">Total Schemes</p>
+                        <h3 class="fw-bold mb-0">{{ total_schemes }}</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-gift-fill text-success fs-4"></i>
+                    </div>
+                </div>
+                <small class="text-muted">Active schemes</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Complaints per Ward</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="complaintsPerWardChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Monthly Complaints Trend</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyComplaintsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Complaint Categories</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="complaintCategoriesChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Complaint Status</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="complaintStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Options -->
+<div class="row g-4 mb-4">
+    <!-- Complaints Report -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-file-earmark-excel text-success me-2"></i>
+                    Complaints Report (Excel)
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Export all complaints with comprehensive details including status, priority, category, assigned workers, and ratings.
+                </p>
+
+                <form method="get" action="{% url 'export_complaints_excel' %}" class="mb-3">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small">Status</label>
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="assigned">Assigned</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Ward</label>
+                            <select name="ward" class="form-select form-select-sm">
+                                <option value="">All Wards</option>
+                                {% for ward in wards %}
+                                <option value="{{ ward.id }}">Ward {{ ward.ward_number }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Priority</label>
+                            <select name="priority" class="form-select form-select-sm">
+                                <option value="">All Priority</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success mt-3 w-100">
+                        <i class="bi bi-download me-2"></i>Download Excel Report
+                    </button>
+                </form>
+
+                <div class="alert alert-info mb-0">
+                    <small>
+                        <i class="bi bi-info-circle me-1"></i>
+                        Includes: ID, Title, Description, Category, Priority, Status, Ward, Citizen, Worker, Rating, Dates
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schemes Report -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-file-earmark-excel text-success me-2"></i>
+                    Schemes Report (Excel)
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Export all schemes with eligibility criteria, benefits, and target demographics.
+                </p>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-2">Export Includes:</h6>
+                    <ul class="small text-muted mb-0">
+                        <li>Scheme name and description</li>
+                        <li>Benefits details</li>
+                        <li>Age and income criteria</li>
+                        <li>Gender and occupation targets</li>
+                        <li>Active status and application links</li>
+                    </ul>
+                </div>
+
+                <a href="{% url 'export_schemes_excel' %}" class="btn btn-success w-100">
+                    <i class="bi bi-download me-2"></i>Download Excel Report
+                </a>
+
+                <div class="alert alert-info mt-3 mb-0">
+                    <small>
+                        <i class="bi bi-info-circle me-1"></i>
+                        All schemes with eligibility criteria will be exported
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly PDF Report -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                    Monthly Report (PDF)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <p class="text-muted mb-3">
+                            Generate a comprehensive monthly report with executive summary, complaint statistics, category breakdown, ward performance, and citizen feedback analysis.
+                        </p>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-2">Report Includes:</h6>
+                                <ul class="small text-muted mb-0">
+                                    <li>Executive summary with key metrics</li>
+                                    <li>Total, resolved, and pending complaints</li>
+                                    <li>Resolution rate and average rating</li>
+                                    <li>Top 5 complaint categories</li>
+                                    <li>Top 5 wards by complaint volume</li>
+                                    <li>Citizen feedback statistics</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <form method="get" action="{% url 'export_monthly_pdf' %}">
+                                    <label class="form-label fw-bold">Select Month</label>
+                                    <select name="month" class="form-select mb-3">
+                                        {% for month in months %}
+                                        <option value="{{ month.value }}">{{ month.label }}</option>
+                                        {% endfor %}
+                                    </select>
+
+                                    <button type="submit" class="btn btn-danger w-100">
+                                        <i class="bi bi-file-earmark-pdf me-2"></i>Generate PDF Report
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-4 rounded text-center">
+                            <i class="bi bi-file-earmark-pdf text-danger" style="font-size: 4rem;"></i>
+                            <p class="mt-3 mb-0 small text-muted">
+                                Professional PDF report with tables, statistics, and formatted layout
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const colors = {
+    primary: '#0d6efd',
+    success: '#198754',
+    warning: '#ffc107',
+    danger: '#dc3545',
+    info: '#0dcaf0',
+    secondary: '#6c757d'
+};
+
+const chartColors = [
+    colors.primary,
+    colors.success,
+    colors.warning,
+    colors.danger,
+    colors.info,
+    colors.secondary,
+    '#fd7e14',
+    '#6f42c1',
+    '#d63384',
+    '#20c997'
+];
+
+// 1. Complaints per Ward (Bar Chart)
+fetch('{% url "chart_complaints_per_ward" %}')
+    .then(response => response.json())
+    .then(data => {
+        new Chart(document.getElementById('complaintsPerWardChart'), {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Complaints',
+                    data: data.data,
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    });
+
+// 2. Monthly Complaints (Line Chart)
+fetch('{% url "chart_monthly_complaints" %}')
+    .then(response => response.json())
+    .then(data => {
+        new Chart(document.getElementById('monthlyComplaintsChart'), {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Complaints',
+                    data: data.data,
+                    borderColor: colors.success,
+                    backgroundColor: colors.success + '20',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    });
+
+// 3. Complaint Categories (Pie Chart)
+fetch('{% url "chart_complaint_categories" %}')
+    .then(response => response.json())
+    .then(data => {
+        new Chart(document.getElementById('complaintCategoriesChart'), {
+            type: 'pie',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    data: data.data,
+                    backgroundColor: chartColors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+
+// 4. Complaint Status (Pie Chart)
+fetch('{% url "chart_complaint_status" %}')
+    .then(response => response.json())
+    .then(data => {
+        new Chart(document.getElementById('complaintStatusChart'), {
+            type: 'pie',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    data: data.data,
+                    backgroundColor: chartColors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}

@@ -31,6 +31,13 @@ def schedule_meeting(request):
                     message=f"A new meeting '{meeting.title}' has been scheduled for {meeting.meeting_date.strftime('%d %b %Y at %H:%M')}. Venue: {meeting.location}."
                 )
             
+            # Send real-time notifications
+            try:
+                from notifications.utils import notify_meeting_announced
+                notify_meeting_announced(meeting)
+            except Exception as e:
+                print(f"Real-time notification failed: {e}")
+            
             messages.success(request, f'Meeting "{meeting.title}" scheduled successfully. Notifications sent to ward citizens.')
             return redirect('meeting_list')
     else:

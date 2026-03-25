@@ -9,7 +9,12 @@ from django.utils import timezone
 from datetime import timedelta
 
 from .forms import ComplaintForm, TaskCompletionForm
-from .models import Complaint, ComplaintStatusHistory
+from .models import Complaint, ComplaintStatusHistory, ComplaintFeedback
+
+# Import AI prediction modules
+from ai_model.predict import predict_category
+from ai_model.priority_model import predict_priority
+from ai_model.duplicate_detection import find_duplicate_complaints
 
 
 # ---------------------------------------------------------------------------
@@ -147,36 +152,141 @@ def report_complaint(request):
             complaint.user = request.user
             complaint.ward = request.user.ward  # auto-fill from user profile
 
-            # --- AI CATEGORISATION ENGINE ---
+            # --- AI CATEGORISATION ENGINE (Machine Learning) ---
             description = form.cleaned_data.get('description', '')
             title = form.cleaned_data.get('title', '')
             full_text = f"{title} {description}"
 
-            complaint.category = ai_categorize(full_text)
+            # Use AI model to predict category
+            try:
+                ai_result = predict_category(full_text)
+                complaint.category = ai_result['category']
+                ai_confidence = ai_result['confidence']
+                
+                # Store AI analysis reason with confidence score
+                if ai_confidence > 0:
+                    complaint.ai_analysis_reason = f"AI Predicted Category: {ai_result['category']} (Confidence: {ai_confidence:.1f}%)"
+            except Exception as e:
+                # Fallback to keyword-based categorization if AI fails
+                print(f"AI categorization failed: {e}")
+                complaint.category = ai_categorize(full_text)
+                complaint.ai_analysis_reason = "Fallback: Keyword-based categorization"
 
-            # --- SENTIMENT / EMERGENCY ESCALATION ---
-            urgency_reason = ai_get_urgency_reason(full_text)
-            if urgency_reason:
-                complaint.priority = 'high'
-                complaint.status = 'urgent_review'
-                complaint.ai_analysis_reason = f"AI Detected High Urgency Keywords: {urgency_reason}"
-                messages.warning(
-                    request,
-                    '⚠️ Your complaint has been automatically escalated to '
-                    '<strong>High Priority (Urgent Review)</strong> due to emergency keywords detected.',
-                    extra_tags='safe',
-                )
+            # --- AI PRIORITY PREDICTION (Machine Learning) ---
+            try:
+                priority_result = predict_priority(full_text, complaint.category)
+                complaint.priority = priority_result['priority']
+                priority_confidence = priority_result['confidence']
+                
+                # Append priority prediction to AI analysis reason
+                priority_reason = f"AI Predicted Priority: {priority_result['priority'].upper()} (Confidence: {priority_confidence:.1f}%)"
+                if priority_result.get('reason'):
+                    priority_reason += f" - {priority_result['reason']}"
+                
+                if complaint.ai_analysis_reason:
+                    complaint.ai_analysis_reason += f"; {priority_reason}"
+                else:
+                    complaint.ai_analysis_reason = priority_reason
+                
+                # Auto-escalate status if high priority
+                if complaint.priority == 'high':
+                    complaint.status = 'urgent_review'
+                    messages.warning(
+                        request,
+                        f'⚠️ Your complaint has been automatically escalated to '
+                        f'<strong>High Priority (Urgent Review)</strong>. {priority_result.get("reason", "")}',
+                        extra_tags='safe',
+                    )
+            except Exception as e:
+                # Fallback to keyword-based priority if AI fails
+                print(f"AI priority prediction failed: {e}")
+                urgency_reason = ai_get_urgency_reason(full_text)
+                if urgency_reason:
+                    complaint.priority = 'high'
+                    complaint.status = 'urgent_review'
+                else:
+                    complaint.priority = 'medium'  # Default priority
 
-            # --- ENHANCED DUPLICATE DETECTION (GPS + AI) ---
-            potential_match = check_enhanced_duplicates(complaint)
-            if potential_match:
-                complaint.is_duplicate = True
-                complaint.potential_duplicate_of = potential_match
-                messages.info(
-                    request,
-                    'ℹ️ AI Detection: A similar complaint was found nearby. '
-                    'Your report has been flagged for verification by the Ward Member.',
+            # --- ENHANCED DUPLICATE DETECTION (AI + GPS) ---
+            # Get existing open complaints in the same ward
+            from datetime import timedelta
+            time_window = timezone.now() - timedelta(days=30)
+            
+            existing_complaints = Complaint.objects.filter(
+                ward=complaint.ward,
+                status__in=['pending', 'assigned', 'in_progress', 'urgent_review'],
+                created_at__gte=time_window
+            ).exclude(id=complaint.id).values(
+                'id', 'title', 'description', 'category', 
+                'latitude', 'longitude', 'status', 'created_at'
+            )
+            
+            # Prepare data for duplicate detection
+            existing_data = [
+                {
+                    'id': c['id'],
+                    'title': c['title'],
+                    'text': c['description'],
+                    'category': c['category'],
+                    'latitude': c['latitude'],
+                    'longitude': c['longitude'],
+                    'status': c['status'],
+                    'created_at': c['created_at']
+                }
+                for c in existing_complaints
+            ]
+            
+            # Run AI duplicate detection
+            try:
+                duplicate_result = find_duplicate_complaints(
+                    complaint.description,
+                    complaint.title,
+                    existing_data,
+                    category=complaint.category,
+                    latitude=complaint.latitude,
+                    longitude=complaint.longitude
                 )
+                
+                if duplicate_result['is_duplicate']:
+                    complaint.is_duplicate = True
+                    
+                    # Link to the most similar complaint
+                    if duplicate_result['duplicate_complaint_id']:
+                        try:
+                            parent = Complaint.objects.get(id=duplicate_result['duplicate_complaint_id'])
+                            complaint.potential_duplicate_of = parent
+                        except Complaint.DoesNotExist:
+                            pass
+                    
+                    # Update AI analysis reason
+                    similarity_pct = duplicate_result['highest_similarity_percentage']
+                    if complaint.ai_analysis_reason:
+                        complaint.ai_analysis_reason += f"; Duplicate Detection: {similarity_pct}% similar to Complaint #{duplicate_result['duplicate_complaint_id']}"
+                    else:
+                        complaint.ai_analysis_reason = f"Duplicate Detection: {similarity_pct}% similar to Complaint #{duplicate_result['duplicate_complaint_id']}"
+                    
+                    # Show warning to user
+                    similar_complaint = duplicate_result['similar_complaints'][0]
+                    messages.warning(
+                        request,
+                        f'⚠️ AI Detection: A similar complaint already exists '
+                        f'(#{similar_complaint["id"]}: {similar_complaint["title"]}). '
+                        f'Similarity: {similar_complaint["similarity_percentage"]}%. '
+                        f'Your complaint has been flagged for review by the Ward Member.',
+                        extra_tags='safe'
+                    )
+            except Exception as e:
+                print(f"Duplicate detection failed: {e}")
+                # Fallback to old duplicate detection if AI fails
+                potential_match = check_enhanced_duplicates(complaint)
+                if potential_match:
+                    complaint.is_duplicate = True
+                    complaint.potential_duplicate_of = potential_match
+                    messages.info(
+                        request,
+                        'ℹ️ AI Detection: A similar complaint was found nearby. '
+                        'Your report has been flagged for verification by the Ward Member.',
+                    )
 
             complaint.save()
 
@@ -288,6 +398,7 @@ def complete_task(request, complaint_id):
     POST-only view to handle task completion with proof.
     """
     complaint = get_object_or_404(Complaint, id=complaint_id)
+    old_status = complaint.status
     
     if request.method == 'POST':
         form = TaskCompletionForm(request.POST, request.FILES)
@@ -307,6 +418,10 @@ def complete_task(request, complaint_id):
                 actor=request.user
             )
             
+            # Send real-time notification
+            from notifications.utils import notify_complaint_status_change
+            notify_complaint_status_change(complaint, old_status, 'resolved')
+            
             messages.success(request, '✅ Task completed and marked as Resolved.')
             return redirect('complaint_detail', complaint_id=complaint.id)
         else:
@@ -318,41 +433,70 @@ def complete_task(request, complaint_id):
 @login_required
 def submit_feedback(request, complaint_id):
     """
-    Citizen view: Rate the resolution of the complaint.
-    If rating is 1 or 2 stars -> Re-open as 'pending' + 'high' priority.
+    Citizen submits rating and feedback for resolved complaint.
     """
     complaint = get_object_or_404(Complaint, id=complaint_id)
 
-    # Security check: only the owner can submit feedback
+    # Security: only the owner can submit feedback
     if request.user != complaint.user:
-        messages.error(request, 'You do not have permission to rate this complaint.')
+        messages.error(request, 'You do not have permission to provide feedback for this complaint.')
         return redirect('dashboard')
+
+    # Check if complaint is resolved
+    if complaint.status != 'resolved':
+        messages.error(request, 'Feedback can only be submitted for resolved complaints.')
+        return redirect('complaint_detail', complaint_id=complaint.id)
+
+    # Check if feedback already exists
+    if hasattr(complaint, 'feedback'):
+        messages.info(request, 'You have already submitted feedback for this complaint.')
+        return redirect('complaint_detail', complaint_id=complaint.id)
 
     if request.method == 'POST':
         try:
             rating = int(request.POST.get('rating', 0))
-            if 1 <= rating <= 5:
-                complaint.citizen_rating = rating
-                
-                # AI Re-Opening Logic
-                if rating <= 2:
-                    complaint.status = 'pending'
-                    complaint.priority = 'high'
-                    messages.warning(
-                        request, 
-                        '⚠️ We are sorry you were unhappy with the resolution. '
-                        'Your complaint has been re-opened with High Priority for the Ward Member to review.'
-                    )
-                else:
-                    messages.success(request, '✅ Thank you for your feedback! Glad we could help.')
-                
-                complaint.save()
-            else:
-                messages.error(request, 'Invalid rating value.')
-        except ValueError:
-            messages.error(request, 'Invalid input.')
+            feedback_text = request.POST.get('feedback_text', '').strip()
             
-    return redirect('complaint_detail', complaint_id=complaint.id)
+            if not (1 <= rating <= 5):
+                messages.error(request, 'Please provide a rating between 1 and 5 stars.')
+                return redirect('feedback_form', complaint_id=complaint.id)
+            
+            if not feedback_text:
+                messages.error(request, 'Please provide your feedback.')
+                return redirect('feedback_form', complaint_id=complaint.id)
+            
+            # Create feedback
+            ComplaintFeedback.objects.create(
+                complaint=complaint,
+                citizen=request.user,
+                rating=rating,
+                feedback_text=feedback_text
+            )
+            
+            # Update complaint rating field
+            complaint.citizen_rating = rating
+            
+            # Re-open if rating is poor (1-2 stars)
+            if rating <= 2:
+                complaint.status = 'pending'
+                complaint.priority = 'high'
+                complaint.save()
+                messages.warning(
+                    request, 
+                    '⚠️ We are sorry you were unhappy with the resolution. '
+                    'Your complaint has been re-opened with High Priority for review.'
+                )
+            else:
+                complaint.save()
+                messages.success(request, '✅ Thank you for your feedback! We appreciate your input.')
+            
+            return redirect('complaint_detail', complaint_id=complaint.id)
+            
+        except ValueError:
+            messages.error(request, 'Invalid rating value.')
+            return redirect('feedback_form', complaint_id=complaint.id)
+    
+    return render(request, 'complaints/feedback_form.html', {'complaint': complaint})
 
 
 @login_required
@@ -394,6 +538,7 @@ def reassign_worker(request, complaint_id):
          return redirect('dashboard')
          
     complaint = get_object_or_404(Complaint, id=complaint_id)
+    old_status = complaint.status
     
     if request.method == 'POST':
         worker_id = request.POST.get('worker_id')
@@ -407,7 +552,7 @@ def reassign_worker(request, complaint_id):
                 return redirect('complaint_detail', complaint_id=complaint.id)
 
             complaint.assigned_worker = worker
-            complaint.status = 'in_progress' # Automatically move to in_progress
+            complaint.status = 'in_progress'
             complaint.save()
 
             # Record in history
@@ -418,6 +563,11 @@ def reassign_worker(request, complaint_id):
                 description=f"Task assigned to Authorized Worker: {worker.get_full_name() or worker.username}.",
                 actor=request.user
             )
+            
+            # Send real-time notifications
+            from notifications.utils import notify_complaint_status_change, notify_complaint_assigned
+            notify_complaint_status_change(complaint, old_status, 'in_progress')
+            notify_complaint_assigned(complaint)
 
             messages.success(request, f'Complaint #{complaint.id} successfully assigned to {worker.username}.')
         except User.DoesNotExist:
@@ -512,3 +662,47 @@ def suggest_worker(request, complaint_id):
         })
         
     return JsonResponse({'error': 'Could not determine best worker'}, status=500)
+
+
+@login_required
+def feedback_list(request):
+    """
+    Admin view: Display all complaint feedbacks with filtering options.
+    """
+    if not (request.user.role in ['panchayath_admin', 'ward_member'] or request.user.is_superuser):
+        messages.error(request, 'Access denied. Administrative privileges required.')
+        return redirect('dashboard')
+    
+    feedbacks = ComplaintFeedback.objects.select_related('complaint', 'citizen', 'complaint__ward').order_by('-created_at')
+    
+    # Filters
+    rating_filter = request.GET.get('rating')
+    ward_filter = request.GET.get('ward')
+    
+    if rating_filter:
+        feedbacks = feedbacks.filter(rating=rating_filter)
+    
+    if ward_filter:
+        feedbacks = feedbacks.filter(complaint__ward_id=ward_filter)
+    
+    # Stats
+    from django.db.models import Avg, Count
+    stats = ComplaintFeedback.objects.aggregate(
+        avg_rating=Avg('rating'),
+        total_feedbacks=Count('id'),
+        poor_ratings=Count('id', filter=Q(rating__lte=2)),
+        good_ratings=Count('id', filter=Q(rating__gte=4))
+    )
+    
+    from accounts.models import Ward
+    wards = Ward.objects.all().order_by('ward_number')
+    
+    context = {
+        'feedbacks': feedbacks,
+        'stats': stats,
+        'wards': wards,
+        'current_rating_filter': rating_filter,
+        'current_ward_filter': ward_filter,
+    }
+    
+    return render(request, 'complaints/feedback_list.html', context)

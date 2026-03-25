@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,11 +39,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'channels',
     'accounts',
     'complaints',
     'schemes',
     'governance',
     'surveys',
+    'notifications',
+    'analytics',
+    'recommendations',
 ]
 
 MIDDLEWARE = [
@@ -74,6 +79,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ward.wsgi.application'
+ASGI_APPLICATION = 'ward.asgi.application'
+
+# Channels Configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 
 # Database

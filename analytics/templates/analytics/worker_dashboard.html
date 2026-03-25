@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold mb-1">Worker Performance Analytics</h2>
+    <p class="text-muted">Track and analyze field worker performance metrics</p>
+</div>
+
+<!-- Overview Stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted mb-1 small">Total Workers</p>
+                        <h3 class="fw-bold mb-0">{{ total_workers }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-people-fill text-primary fs-4"></i>
+                    </div>
+                </div>
+                <small class="text-muted">Active field workers</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted mb-1 small">Total Completed</p>
+                        <h3 class="fw-bold mb-0 text-success">{{ total_completed }}</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                    </div>
+                </div>
+                <small class="text-muted">All time completions</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted mb-1 small">Active Tasks</p>
+                        <h3 class="fw-bold mb-0 text-warning">{{ total_active }}</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-hourglass-split text-warning fs-4"></i>
+                    </div>
+                </div>
+                <small class="text-muted">Currently in progress</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted mb-1 small">Avg Rating</p>
+                        <h3 class="fw-bold mb-0 text-info">{{ avg_rating }}</h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-star-fill text-info fs-4"></i>
+                    </div>
+                </div>
+                <small class="text-muted">Out of 5.0</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Top 10 Workers by Completion</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="workerComparisonChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Top 10 Workers by Rating</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="workerRatingChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Performers -->
+<div class="card mb-4">
+    <div class="card-header bg-white border-bottom">
+        <h5 class="mb-0 fw-bold">Top Performers</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Worker</th>
+                        <th>Completed</th>
+                        <th>Active</th>
+                        <th>Total Assigned</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for worker in top_performers %}
+                    <tr>
+                        <td>
+                            {% if forloop.counter == 1 %}
+                                <span class="badge bg-warning">🥇 #1</span>
+                            {% elif forloop.counter == 2 %}
+                                <span class="badge bg-secondary">🥈 #2</span>
+                            {% elif forloop.counter == 3 %}
+                                <span class="badge bg-info">🥉 #3</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">#{{ forloop.counter }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ worker.get_full_name|default:worker.username }}</strong>
+                        </td>
+                        <td><span class="badge bg-success">{{ worker.total_completed }}</span></td>
+                        <td><span class="badge bg-warning">{{ worker.active_tasks }}</span></td>
+                        <td>{{ worker.total_assigned }}</td>
+                        <td>
+                            <a href="{% url 'worker_detail_analytics' worker.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-graph-up me-1"></i>View Analytics
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- All Workers -->
+<div class="card">
+    <div class="card-header bg-white border-bottom">
+        <h5 class="mb-0 fw-bold">All Workers</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Worker</th>
+                        <th>Completed</th>
+                        <th>Active</th>
+                        <th>Total</th>
+                        <th>Completion Rate</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for worker in workers %}
+                    <tr>
+                        <td><strong>{{ worker.get_full_name|default:worker.username }}</strong></td>
+                        <td><span class="badge bg-success">{{ worker.total_completed }}</span></td>
+                        <td><span class="badge bg-warning">{{ worker.active_tasks }}</span></td>
+                        <td>{{ worker.total_assigned }}</td>
+                        <td>
+                            {% widthratio worker.total_completed worker.total_assigned 100 as rate %}
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ rate }}%">
+                                    {{ rate }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="{% url 'worker_detail_analytics' worker.id %}" class="btn btn-sm btn-outline-primary">
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            No workers found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const colors = {
+    primary: '#0d6efd',
+    success: '#198754',
+    warning: '#ffc107',
+    danger: '#dc3545',
+    info: '#0dcaf0'
+};
+
+// Worker Comparison Chart
+fetch('{% url "worker_comparison_chart" %}')
+    .then(response => response.json())
+    .then(data => {
+        new Chart(document.getElementById('workerComparisonChart'), {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Completed Tasks',
+                    data: data.completed,
+                    backgroundColor: colors.success,
+                    borderColor: colors.success,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    });
+
+// Worker Rating Chart
+fetch('{% url "worker_rating_chart" %}')
+    .then(response => response.json())
+    .then(data => {
+        new Chart(document.getElementById('workerRatingChart'), {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Average Rating',
+                    data: data.ratings,
+                    backgroundColor: colors.info,
+                    borderColor: colors.info,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        ticks: { stepSize: 0.5 }
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}

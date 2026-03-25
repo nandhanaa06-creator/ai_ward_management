@@ -27,6 +27,10 @@ urlpatterns = [
     path('schemes/', include('schemes.urls')),
     path('governance/', include('governance.urls')),
     path('surveys/', include('surveys.urls')),
+    path('reports/', include('reports.urls')),
+    path('notifications/', include('notifications.urls')),
+    path('analytics/', include('analytics.urls')),
+    path('recommendations/', include('recommendations.urls')),
 
     path('', lambda request: redirect('accounts/login/', permanent=False)),
 

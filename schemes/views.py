@@ -164,6 +164,14 @@ def create_scheme(request):
             scheme = form.save(commit=False)
             scheme.created_by = request.user
             scheme.save()
+            
+            # Send real-time notifications to all citizens
+            try:
+                from notifications.utils import notify_new_scheme
+                notify_new_scheme(scheme)
+            except Exception as e:
+                print(f"Real-time notification failed: {e}")
+            
             messages.success(request, f'Scheme "{scheme.name}" has been created successfully.')
             return redirect('create_scheme')
     else:

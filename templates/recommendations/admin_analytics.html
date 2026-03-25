@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Scheme Recommendation Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-graph-up me-2"></i>Scheme Recommendation Analytics</h2>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">Total Recommendations</h6>
+                    <h3 class="mb-0">{{ total_recommendations }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">Users with Recommendations</h6>
+                    <h3 class="mb-0">{{ total_users_with_recs }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">Avg Match Score</h6>
+                    <h3 class="mb-0">{{ avg_match_score }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">View Rate</h6>
+                    <h3 class="mb-0">{{ viewed_rate }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Match Score Distribution</h5>
+                    <canvas id="scoreDistChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Conversion Funnel</h5>
+                    <canvas id="conversionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Schemes -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Top Recommended Schemes</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Scheme Name</th>
+                            <th>Recommendations</th>
+                            <th>Avg Match Score</th>
+                            <th>Applications</th>
+                            <th>Conversion Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scheme in top_schemes %}
+                        <tr>
+                            <td>{{ scheme.scheme__name }}</td>
+                            <td><span class="badge bg-primary">{{ scheme.rec_count }}</span></td>
+                            <td>{{ scheme.avg_score|floatformat:1 }}%</td>
+                            <td><span class="badge bg-success">{{ scheme.applied }}</span></td>
+                            <td>
+                                {% widthratio scheme.applied scheme.rec_count 100 %}%
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Recommendations -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Recent Recommendations</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Citizen</th>
+                            <th>Scheme</th>
+                            <th>Match Score</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in recent_recs %}
+                        <tr>
+                            <td>{{ rec.user.username }}</td>
+                            <td>{{ rec.scheme.name }}</td>
+                            <td>
+                                <span class="badge {% if rec.match_score >= 80 %}bg-success{% elif rec.match_score >= 70 %}bg-info{% else %}bg-warning{% endif %}">
+                                    {{ rec.match_score|floatformat:0 }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if rec.is_applied %}
+                                    <span class="badge bg-success">Applied</span>
+                                {% elif rec.is_viewed %}
+                                    <span class="badge bg-info">Viewed</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">New</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ rec.created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Score Distribution Chart
+fetch('/recommendations/api/score-distribution/')
+    .then(response => response.json())
+    .then(data => {
+        const ctx = document.getElementById('scoreDistChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.data.map(d => d.label),
+                datasets: [{
+                    label: 'Recommendations',
+                    data: data.data.map(d => d.count),
+                    backgroundColor: 'rgba(13, 110, 253, 0.8)'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    });
+
+// Conversion Funnel Chart
+fetch('/recommendations/api/conversion-funnel/')
+    .then(response => response.json())
+    .then(data => {
+        const ctx = document.getElementById('conversionChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.data.map(d => d.stage),
+                datasets: [{
+                    label: 'Count',
+                    data: data.data.map(d => d.count),
+                    backgroundColor: ['rgba(13, 110, 253, 0.8)', 'rgba(25, 135, 84, 0.8)', 'rgba(255, 193, 7, 0.8)']
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

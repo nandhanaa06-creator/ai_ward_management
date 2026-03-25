@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold mb-1">Citizens Management</h2>
+    <p class="text-muted">View and manage all registered citizens in the panchayath</p>
+</div>
+
+<!-- Stats Overview -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded me-3">
+                        <i class="bi bi-people-fill text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Total Citizens</p>
+                        <h4 class="fw-bold mb-0">{{ total_citizens }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="bg-success bg-opacity-10 p-3 rounded me-3">
+                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Assigned to Wards</p>
+                        <h4 class="fw-bold mb-0">{{ assigned_citizens }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="bg-warning bg-opacity-10 p-3 rounded me-3">
+                        <i class="bi bi-exclamation-circle-fill text-warning fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Unassigned</p>
+                        <h4 class="fw-bold mb-0">{{ unassigned_citizens }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Citizens Table -->
+<div class="card">
+    <div class="card-header bg-white border-bottom">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">All Citizens</h5>
+            <div class="d-flex gap-2">
+                <input type="text" class="form-control form-control-sm" placeholder="Search citizens..." id="searchInput" style="width: 250px;">
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="citizensTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Ward</th>
+                        <th>Complaints</th>
+                        <th>Joined Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for citizen in citizens %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                                    <span class="fw-bold text-primary">{{ citizen.username|make_list|first|upper }}</span>
+                                </div>
+                                <span class="fw-medium">{{ citizen.username }}</span>
+                            </div>
+                        </td>
+                        <td>{{ citizen.get_full_name|default:"-" }}</td>
+                        <td>{{ citizen.email|default:"-" }}</td>
+                        <td>
+                            {% if citizen.ward %}
+                                <span class="badge bg-primary">Ward {{ citizen.ward.ward_number }}</span>
+                            {% else %}
+                                <span class="badge bg-warning">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark">{{ citizen.complaint_count }} complaints</span>
+                        </td>
+                        <td>{{ citizen.date_joined|date:"d M, Y" }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#citizenModal{{ citizen.id }}">
+                                <i class="bi bi-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-people fs-2 d-block mb-2"></i>
+                            No citizens found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Citizen Detail Modals -->
+{% for citizen in citizens %}
+<div class="modal fade" id="citizenModal{{ citizen.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Citizen Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                        <span class="fw-bold text-primary fs-2">{{ citizen.username|make_list|first|upper }}</span>
+                    </div>
+                </div>
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="40%">Username:</th>
+                        <td>{{ citizen.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Full Name:</th>
+                        <td>{{ citizen.get_full_name|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Email:</th>
+                        <td>{{ citizen.email|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ward:</th>
+                        <td>
+                            {% if citizen.ward %}
+                                Ward {{ citizen.ward.ward_number }} - {{ citizen.ward.ward_name }}
+                            {% else %}
+                                <span class="text-warning">Not assigned</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Total Complaints:</th>
+                        <td>{{ citizen.complaint_count }}</td>
+                    </tr>
+                    <tr>
+                        <th>Joined Date:</th>
+                        <td>{{ citizen.date_joined|date:"d M, Y" }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+// Simple search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const searchValue = this.value.toLowerCase();
+    const tableRows = document.querySelectorAll('#citizensTable tbody tr');
+    
+    tableRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchValue) ? '' : 'none';
+    });
+});
+</script>
+
+{% endblock %}

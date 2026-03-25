@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Recommended Schemes for You{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-stars me-2"></i>Schemes Recommended for You</h2>
+        <button class="btn btn-primary" onclick="refreshRecommendations()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Total Matches</h6>
+                            <h3 class="mb-0">{{ total_recommendations }}</h3>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-list-check text-primary fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">High Match</h6>
+                            <h3 class="mb-0">{{ high_match }}</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-star-fill text-success fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Viewed</h6>
+                            <h3 class="mb-0">{{ viewed_count }}</h3>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-eye-fill text-info fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Applied</h6>
+                            <h3 class="mb-0">{{ applied_count }}</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-check-circle-fill text-warning fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations List -->
+    {% if recommendations %}
+    <div class="row">
+        {% for rec in recommendations %}
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title mb-0">{{ rec.scheme.name }}</h5>
+                        <span class="badge {% if rec.match_score >= 80 %}bg-success{% elif rec.match_score >= 70 %}bg-info{% else %}bg-warning{% endif %} fs-6">
+                            {{ rec.match_score|floatformat:0 }}% Match
+                        </span>
+                    </div>
+                    
+                    <p class="text-muted mb-3">{{ rec.scheme.description|truncatewords:30 }}</p>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-primary mb-2"><i class="bi bi-gift me-1"></i>Benefits:</h6>
+                        <p class="small mb-0">{{ rec.scheme.benefits|truncatewords:20 }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-success mb-2"><i class="bi bi-check-circle me-1"></i>Why You Match:</h6>
+                        <pre class="small mb-0 bg-light p-2 rounded" style="white-space: pre-wrap;">{{ rec.match_reasons }}</pre>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary btn-sm flex-fill" onclick="viewDetails({{ rec.id }}, '{{ rec.scheme.application_link }}')">
+                            <i class="bi bi-eye me-1"></i>View Details
+                        </button>
+                        {% if rec.scheme.application_link %}
+                        <button class="btn btn-success btn-sm flex-fill" onclick="applyScheme({{ rec.id }}, '{{ rec.scheme.application_link }}')">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Apply Now
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mt-2 d-flex gap-2 small text-muted">
+                        {% if rec.is_viewed %}<span><i class="bi bi-eye-fill text-info"></i> Viewed</span>{% endif %}
+                        {% if rec.is_applied %}<span><i class="bi bi-check-circle-fill text-success"></i> Applied</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        No scheme recommendations available. Please complete your profile with age, income, gender, and occupation details.
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function refreshRecommendations() {
+    if (!confirm('This will regenerate all recommendations. Continue?')) return;
+    
+    fetch('{% url "refresh_recommendations" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Generated ${data.count} recommendations!`);
+            location.reload();
+        }
+    });
+}
+
+function viewDetails(recId, appLink) {
+    fetch(`/recommendations/mark-viewed/${recId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    });
+    
+    if (appLink) {
+        window.open(appLink, '_blank');
+    } else {
+        alert('Application link not available. Please contact your ward office.');
+    }
+}
+
+function applyScheme(recId, appLink) {
+    fetch(`/recommendations/mark-applied/${recId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(() => {
+        window.open(appLink, '_blank');
+        setTimeout(() => location.reload(), 1000);
+    });
+}
+</script>
+{% endblock %}

@@ -402,6 +402,33 @@ def get_predictive_analytics(wards, total_days=90, forecast_days=30):
     }
 
 @user_passes_test(is_admin, login_url='/accounts/login/')
+def citizens_list(request):
+    """
+    Display all registered citizens with their details.
+    """
+    from django.db.models import Count
+    
+    # Get all citizens with complaint count
+    citizens = User.objects.filter(role='citizen').annotate(
+        complaint_count=Count('complaints')
+    ).order_by('-date_joined')
+    
+    # Stats
+    total_citizens = citizens.count()
+    assigned_citizens = citizens.filter(ward__isnull=False).count()
+    unassigned_citizens = citizens.filter(ward__isnull=True).count()
+    
+    context = {
+        'citizens': citizens,
+        'total_citizens': total_citizens,
+        'assigned_citizens': assigned_citizens,
+        'unassigned_citizens': unassigned_citizens,
+    }
+    
+    return render(request, 'accounts/citizens_list.html', context)
+
+
+@user_passes_test(is_admin, login_url='/accounts/login/')
 def admin_dashboard(request):
     """
     God Mode Interface for Panchayath Admin.
@@ -450,6 +477,9 @@ def admin_dashboard(request):
     
     hotspot_ward = wards.order_by('-pending_count').first()
     
+    # Total citizens count
+    total_citizens = User.objects.filter(role='citizen').count()
+    
     # 5. Field Worker Lifecycle Telemetry
     workers = User.objects.filter(role='field_worker').annotate(
         task_count_annotation=Count('assigned_tasks', filter=Q(assigned_tasks__status__in=['assigned', 'in_progress'])),
@@ -477,6 +507,7 @@ def admin_dashboard(request):
         'hotspot_ward': hotspot_ward,
         'wards': wards,
         'workers': workers,
+        'total_citizens': total_citizens,
         
         'predictive': predictive_data,
         'iot': iot_data,

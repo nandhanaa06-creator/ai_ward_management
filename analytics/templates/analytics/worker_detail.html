@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold mb-1">{{ worker.get_full_name|default:worker.username }}</h2>
+            <p class="text-muted">Worker Performance Analytics</p>
+        </div>
+        <div>
+            <a href="{% url 'export_worker_pdf' worker.id %}" class="btn btn-danger">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Export PDF
+            </a>
+            <a href="{% url 'worker_analytics' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Back to List
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Metrics -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1 small">Total Assigned</p>
+                <h3 class="fw-bold mb-0">{{ total_assigned }}</h3>
+                <small class="text-muted">All time</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1 small">Completed</p>
+                <h3 class="fw-bold mb-0 text-success">{{ total_completed }}</h3>
+                <small class="text-success">{{ completion_rate }}% rate</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1 small">Avg Resolution Time</p>
+                <h3 class="fw-bold mb-0 text-info">{{ avg_resolution_time }}</h3>
+                <small class="text-muted">days</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1 small">Citizen Rating</p>
+                <h3 class="fw-bold mb-0 text-warning">{{ avg_rating }}</h3>
+                <small class="text-muted">out of 5.0 ({{ total_feedbacks }} reviews)</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-4 mb-4">
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Monthly Performance (Last 6 Months)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Rating Distribution</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>⭐⭐⭐⭐⭐ 5 Stars</span>
+                        <strong>{{ rating_distribution.5 }}</strong>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" style="width: {% widthratio rating_distribution.5 total_feedbacks 100 %}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>⭐⭐⭐⭐ 4 Stars</span>
+                        <strong>{{ rating_distribution.4 }}</strong>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-info" style="width: {% widthratio rating_distribution.4 total_feedbacks 100 %}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>⭐⭐⭐ 3 Stars</span>
+                        <strong>{{ rating_distribution.3 }}</strong>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-warning" style="width: {% widthratio rating_distribution.3 total_feedbacks 100 %}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>⭐⭐ 2 Stars</span>
+                        <strong>{{ rating_distribution.2 }}</strong>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-danger" style="width: {% widthratio rating_distribution.2 total_feedbacks 100 %}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>⭐ 1 Star</span>
+                        <strong>{{ rating_distribution.1 }}</strong>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-danger" style="width: {% widthratio rating_distribution.1 total_feedbacks 100 %}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Breakdown -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Category Breakdown</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Top Categories</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in category_stats %}
+                            <tr>
+                                <td>{{ cat.category|default:"Uncategorized" }}</td>
+                                <td><span class="badge bg-primary">{{ cat.count }}</span></td>
+                                <td>
+                                    {% widthratio cat.count total_completed 100 as pct %}
+                                    {{ pct }}%
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Tasks -->
+<div class="card">
+    <div class="card-header bg-white border-bottom">
+        <h5 class="mb-0 fw-bold">Recent Tasks</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in recent_tasks %}
+                    <tr>
+                        <td>#{{ task.id }}</td>
+                        <td>{{ task.title }}</td>
+                        <td><span class="badge bg-light text-dark">{{ task.category }}</span></td>
+                        <td>
+                            {% if task.status == 'resolved' %}
+                                <span class="badge bg-success">Resolved</span>
+                            {% elif task.status == 'in_progress' %}
+                                <span class="badge bg-info">In Progress</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ task.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if task.priority == 'high' %}
+                                <span class="badge bg-danger">High</span>
+                            {% elif task.priority == 'medium' %}
+                                <span class="badge bg-warning">Medium</span>
+                            {% else %}
+                                <span class="badge bg-success">Low</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.updated_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const colors = {
+    primary: '#0d6efd',
+    success: '#198754',
+    warning: '#ffc107',
+    danger: '#dc3545',
+    info: '#0dcaf0'
+};
+
+// Monthly Performance Chart
+fetch('{% url "worker_monthly_performance" worker.id %}')
+    .then(response => response.json())
+    .then(data => {
+        new Chart(document.getElementById('monthlyPerformanceChart'), {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Tasks Completed',
+                    data: data.completed,
+                    borderColor: colors.success,
+                    backgroundColor: colors.success + '20',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    });
+
+// Category Breakdown Chart
+fetch('{% url "worker_category_breakdown" worker.id %}')
+    .then(response => response.json())
+    .then(data => {
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    data: data.data,
+                    backgroundColor: [
+                        colors.primary,
+                        colors.success,
+                        colors.warning,
+                        colors.danger,
+                        colors.info,
+                        '#6c757d'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}
