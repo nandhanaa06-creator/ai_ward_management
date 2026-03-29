@@ -1,269 +1,597 @@
-{% extends 'base.html' %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | Smart Ward Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-{% block content %}
-<!-- Modern Typography -->
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            background: #f1f5f9;
+        }
 
-<style>
-    :root {
-        --glass-bg: rgba(255, 255, 255, 0.03);
-        --glass-border: rgba(255, 255, 255, 0.1);
-        --glass-frost: blur(25px);
-        --electric-blue: #3b82f6;
-        --deep-slate: #020617;
-        --text-bright: #f8fafc;
-        --text-dim: #94a3b8;
-    }
+        /* ── Left Panel ── */
+        .left-panel {
+            width: 42%;
+            background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 40%, #0369a1 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 4rem 3.5rem;
+            position: relative;
+            overflow: hidden;
+        }
 
-    /* Background & Layout Override */
-    .main-wrapper {
-        background: radial-gradient(circle at 0% 0%, #1e3a8a 0%, #0f172a 40%, #020617 100%) !important;
-        position: relative;
-        overflow: hidden;
-    }
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: -120px; right: -120px;
+            width: 400px; height: 400px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+        }
 
-    .main-wrapper::after {
-        content: '';
-        position: absolute;
-        bottom: -20%;
-        left: -10%;
-        width: 50%;
-        height: 50%;
-        background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
-        pointer-events: none;
-    }
+        .left-panel::after {
+            content: '';
+            position: absolute;
+            bottom: -80px; left: -80px;
+            width: 300px; height: 300px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+        }
 
-    .content-area {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem !important;
-        min-height: calc(100vh - 70px);
-    }
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50px;
+            padding: 0.4rem 1rem;
+            color: #bfdbfe;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
 
-    /* High-Fidelity Glassmorphism Card */
-    .registration-portal {
-        background: var(--glass-bg);
-        backdrop-filter: var(--glass-frost);
-        -webkit-backdrop-filter: var(--glass-frost);
-        border: 1px solid var(--glass-border);
-        border-radius: 40px;
-        padding: 4rem;
-        width: 100%;
-        max-width: 600px;
-        box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.7);
-        color: var(--text-bright);
-        position: relative;
-        z-index: 10;
-        animation: slideUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
+        .left-panel h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.25rem;
+            position: relative;
+            z-index: 1;
+        }
 
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(40px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+        .left-panel h1 span { color: #7dd3fc; }
 
-    .registration-portal::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 100%;
-        background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 40%);
-        border-radius: 40px;
-        pointer-events: none;
-    }
+        .left-panel p {
+            color: #bfdbfe;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            max-width: 360px;
+            margin-bottom: 2.5rem;
+            position: relative;
+            z-index: 1;
+        }
 
-    .portal-header h2 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 800;
-        font-size: 2.25rem;
-        letter-spacing: -1.5px;
-        margin-bottom: 0.75rem;
-        text-align: center;
-        color: #fff;
-        text-shadow: 0 0 20px rgba(255,255,255,0.1);
-    }
+        .step-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+            position: relative;
+            z-index: 1;
+        }
 
-    .portal-header p {
-        text-align: center;
-        color: var(--text-dim);
-        font-size: 1rem;
-        margin-bottom: 3.5rem;
-        font-weight: 400;
-    }
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.9rem;
+        }
 
-    /* Form Design: Minimalist & Tactile */
-    .form-group {
-        position: relative;
-        margin-bottom: 2rem;
-    }
+        .step-num {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
 
-    .form-group label {
-        display: block;
-        font-size: 0.7rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: var(--text-dim);
-        margin-bottom: 0.75rem;
-        padding-left: 0.25rem;
-        transition: color 0.3s;
-    }
+        .step-text strong {
+            display: block;
+            color: #e0f2fe;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
 
-    .registration-portal input, 
-    .registration-portal select, 
-    .registration-portal textarea {
-        width: 100%;
-        background: rgba(255, 255, 255, 0.01) !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-        border-radius: 16px !important;
-        padding: 14px 20px !important;
-        color: #f8fafc !important;
-        font-size: 1rem !important;
-        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4) !important;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-        outline: none !important;
-    }
+        .step-text span {
+            color: #93c5fd;
+            font-size: 0.8rem;
+        }
 
-    .registration-portal input:focus,
-    .registration-portal select:focus {
-        background: rgba(255, 255, 255, 0.03) !important;
-        border-color: rgba(59, 130, 246, 0.5) !important;
-        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.2) !important;
-        transform: scale(1.01);
-    }
+        .already-link {
+            margin-top: 3rem;
+            position: relative;
+            z-index: 1;
+            color: #93c5fd;
+            font-size: 0.875rem;
+        }
 
-    .registration-portal .help-text {
-        font-size: 0.75rem;
-        color: #64748b;
-        margin-top: 0.6rem;
-        padding-left: 0.25rem;
-        line-height: 1.4;
-    }
+        .already-link a {
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+        }
 
-    /* Primary Action */
-    .btn-portal {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-        border: 1px solid rgba(255,255,255,0.1);
-        color: white;
-        font-weight: 700;
-        padding: 1.1rem;
-        border-radius: 18px;
-        width: 100%;
-        margin-top: 1.5rem;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        transition: all 0.4s;
-        box-shadow: 0 15px 30px -10px rgba(37, 99, 235, 0.5);
-        cursor: pointer;
-    }
+        .already-link a:hover { text-decoration: underline; }
 
-    .btn-portal:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.7);
-        filter: brightness(1.1);
-    }
+        /* ── Right Panel ── */
+        .right-panel {
+            width: 58%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 3rem;
+            background: #ffffff;
+            overflow-y: auto;
+        }
 
-    /* Sidebar Overrides for Signup Portal */
-    .sidebar-wrapper {
-        background: #020617 !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.03);
-    }
+        .signup-box {
+            width: 100%;
+            max-width: 520px;
+        }
 
-    .nav-item-link i {
-        color: #3b82f6 !important;
-        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
-        opacity: 1 !important;
-    }
+        .signup-logo {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 20px rgba(37,99,235,0.3);
+        }
 
-    .sidebar-brand-icon {
-        background: linear-gradient(135deg, #1d4ed8, #3b82f6) !important;
-        box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-    }
+        .signup-box h2 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.3rem;
+        }
 
-    /* Footer Navigation */
-    .portal-footer {
-        text-align: center;
-        margin-top: 2.5rem;
-        font-size: 0.9rem;
-        color: var(--text-dim);
-    }
+        .signup-box .subtitle {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 1.75rem;
+        }
 
-    .portal-footer a {
-        color: var(--electric-blue);
-        text-decoration: none;
-        font-weight: 700;
-        transition: all 0.3s;
-        position: relative;
-    }
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
+            margin-bottom: 0.75rem;
+            margin-top: 1.25rem;
+        }
 
-    .portal-footer a::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        width: 0;
-        height: 2px;
-        background: var(--electric-blue);
-        transition: width 0.3s;
-    }
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem;
+        }
 
-    .portal-footer a:hover::after {
-        width: 100%;
-    }
+        .field-full { grid-column: 1 / -1; }
 
-    .portal-footer a:hover {
-        color: #60a5fa;
-        text-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
-    }
+        .form-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.35rem;
+            display: block;
+        }
 
-    /* Error Styling */
-    .error-msg {
-        color: #ef4444;
-        font-size: 0.75rem;
-        margin-top: 0.5rem;
-        background: rgba(239, 68, 68, 0.1);
-        padding: 8px 12px;
-        border-radius: 8px;
-        border-left: 3px solid #ef4444;
-    }
-</style>
+        .input-wrapper { position: relative; }
 
-<div class="registration-portal">
-    <div class="portal-header">
-        <h2>Initiate Identity</h2>
-        <p>Register your citizen node within the Smart City grid.</p>
-    </div>
+        .input-wrapper .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.95rem;
+            pointer-events: none;
+        }
 
-    <form method="post" novalidate>
-        {% csrf_token %}
-        
-        {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                    <div class="help-text">{{ field.help_text|safe }}</div>
-                {% endif %}
-                {% if field.errors %}
-                    {% for error in field.errors %}
-                        <div class="error-msg">
-                            <i class="bi bi-exclamation-circle me-1"></i> {{ error|striptags }}
-                        </div>
-                    {% endfor %}
-                {% endif %}
+        .input-wrapper .toggle-pw {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.95rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .form-control, .form-select {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 9px;
+            padding: 0.65rem 0.85rem 0.65rem 2.4rem;
+            font-size: 0.875rem;
+            color: #0f172a;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-select { padding-left: 2.4rem; }
+
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: #fff;
+        }
+
+        .form-control::placeholder { color: #cbd5e1; }
+
+        .form-control.is-invalid, .form-select.is-invalid {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+        }
+
+        .error-text {
+            font-size: 0.78rem;
+            color: #ef4444;
+            margin-top: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .help-text {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+        }
+
+        .non-field-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            border-radius: 9px;
+            padding: 0.6rem 0.85rem;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-signup {
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-signup:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(37,99,235,0.45);
+        }
+
+        .terms-note {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #94a3b8;
+            margin-top: 0.85rem;
+        }
+
+        /* Override Django widget styles */
+        .signup-box input[type="text"],
+        .signup-box input[type="password"],
+        .signup-box input[type="email"],
+        .signup-box select,
+        .signup-box textarea {
+            background: #f8fafc !important;
+            border: 1.5px solid #e2e8f0 !important;
+            border-radius: 9px !important;
+            padding: 0.65rem 0.85rem !important;
+            font-size: 0.875rem !important;
+            color: #0f172a !important;
+            width: 100% !important;
+            transition: border-color 0.2s, box-shadow 0.2s !important;
+            font-family: 'Inter', sans-serif !important;
+            outline: none !important;
+        }
+
+        .signup-box input:focus,
+        .signup-box select:focus,
+        .signup-box textarea:focus {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1) !important;
+            background: #fff !important;
+        }
+
+        @media (max-width: 768px) {
+            .left-panel { display: none; }
+            .right-panel { width: 100%; padding: 2rem 1.25rem; }
+            .field-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 992px) {
+            .left-panel { width: 38%; padding: 3rem 2rem; }
+            .right-panel { width: 62%; padding: 2rem 2rem; }
+            .left-panel h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Left Panel -->
+    <div class="left-panel">
+        <div class="brand-badge">
+            <i class="bi bi-shield-check"></i>
+            Citizen Registration
+        </div>
+
+        <h1>Join Smart<br><span>Ward</span><br>Portal</h1>
+
+        <p>Register once and access all ward services — complaints, schemes, meetings, and real-time updates.</p>
+
+        <div class="step-list">
+            <div class="step-item">
+                <div class="step-num">1</div>
+                <div class="step-text">
+                    <strong>Create your account</strong>
+                    <span>Fill in your basic details below</span>
+                </div>
             </div>
-        {% endfor %}
+            <div class="step-item">
+                <div class="step-num">2</div>
+                <div class="step-text">
+                    <strong>Select your ward</strong>
+                    <span>Connect to your local governance unit</span>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-num">3</div>
+                <div class="step-text">
+                    <strong>Access all services</strong>
+                    <span>Submit complaints, apply for schemes & more</span>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-num">4</div>
+                <div class="step-text">
+                    <strong>Get real-time updates</strong>
+                    <span>AI-powered notifications on your issues</span>
+                </div>
+            </div>
+        </div>
 
-        <button type="submit" class="btn-portal">Establish Registration</button>
-    </form>
-
-    <div class="portal-footer">
-        Existing Node? <a href="{% url 'login' %}">Decrypt Identity</a>
+        <div class="already-link">
+            Already registered? <a href="{% url 'login' %}">Sign in here</a>
+        </div>
     </div>
-</div>
-{% endblock %}
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+        <div class="signup-box">
+
+            <div class="signup-logo">
+                <i class="bi bi-person-plus-fill"></i>
+            </div>
+
+            <h2>Create your account</h2>
+            <p class="subtitle">Fill in the details below to get started</p>
+
+            {% if form.non_field_errors %}
+                {% for error in form.non_field_errors %}
+                <div class="non-field-error">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    {{ error }}
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <!-- Account Info -->
+                <div class="section-label">Account Information</div>
+                <div class="field-grid">
+
+                    <!-- Username -->
+                    <div class="field-full">
+                        <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-person input-icon"></i>
+                            <input type="text"
+                                   name="{{ form.username.html_name }}"
+                                   id="{{ form.username.id_for_label }}"
+                                   class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                                   placeholder="Choose a username"
+                                   value="{{ form.username.value|default:'' }}"
+                                   style="padding-left: 2.4rem;"
+                                   required>
+                        </div>
+                        {% if form.username.errors %}
+                            <div class="error-text"><i class="bi bi-exclamation-circle"></i>{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                        {% if form.username.help_text %}
+                            <div class="help-text">{{ form.username.help_text|safe }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password 1 -->
+                    <div>
+                        <label class="form-label" for="{{ form.password1.id_for_label }}">Password</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-lock input-icon"></i>
+                            <input type="password"
+                                   name="{{ form.password1.html_name }}"
+                                   id="{{ form.password1.id_for_label }}"
+                                   class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                                   placeholder="Create password"
+                                   style="padding-left: 2.4rem; padding-right: 2.4rem;"
+                                   required>
+                            <button type="button" class="toggle-pw" onclick="togglePw('{{ form.password1.id_for_label }}', 'eye1')">
+                                <i class="bi bi-eye" id="eye1"></i>
+                            </button>
+                        </div>
+                        {% if form.password1.errors %}
+                            <div class="error-text"><i class="bi bi-exclamation-circle"></i>{{ form.password1.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password 2 -->
+                    <div>
+                        <label class="form-label" for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-lock-fill input-icon"></i>
+                            <input type="password"
+                                   name="{{ form.password2.html_name }}"
+                                   id="{{ form.password2.id_for_label }}"
+                                   class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                                   placeholder="Repeat password"
+                                   style="padding-left: 2.4rem; padding-right: 2.4rem;"
+                                   required>
+                            <button type="button" class="toggle-pw" onclick="togglePw('{{ form.password2.id_for_label }}', 'eye2')">
+                                <i class="bi bi-eye" id="eye2"></i>
+                            </button>
+                        </div>
+                        {% if form.password2.errors %}
+                            <div class="error-text"><i class="bi bi-exclamation-circle"></i>{{ form.password2.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+                <!-- Personal Info -->
+                <div class="section-label" style="margin-top: 1.5rem;">Personal & Location</div>
+                <div class="field-grid">
+
+                    <!-- Phone -->
+                    <div>
+                        <label class="form-label" for="{{ form.phone_number.id_for_label }}">Phone Number</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-telephone input-icon"></i>
+                            <input type="text"
+                                   name="{{ form.phone_number.html_name }}"
+                                   id="{{ form.phone_number.id_for_label }}"
+                                   class="form-control {% if form.phone_number.errors %}is-invalid{% endif %}"
+                                   placeholder="e.g. 9876543210"
+                                   value="{{ form.phone_number.value|default:'' }}"
+                                   style="padding-left: 2.4rem;">
+                        </div>
+                        {% if form.phone_number.errors %}
+                            <div class="error-text"><i class="bi bi-exclamation-circle"></i>{{ form.phone_number.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Ward -->
+                    <div>
+                        <label class="form-label" for="{{ form.ward.id_for_label }}">Ward</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-geo-alt input-icon"></i>
+                            <select name="{{ form.ward.html_name }}"
+                                    id="{{ form.ward.id_for_label }}"
+                                    class="form-select {% if form.ward.errors %}is-invalid{% endif %}"
+                                    style="padding-left: 2.4rem;">
+                                <option value="">Select your ward</option>
+                                {% for choice in form.ward.field.queryset %}
+                                    <option value="{{ choice.pk }}" {% if form.ward.value == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                        {{ choice }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if form.ward.errors %}
+                            <div class="error-text"><i class="bi bi-exclamation-circle"></i>{{ form.ward.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Address -->
+                    <div class="field-full">
+                        <label class="form-label" for="{{ form.address.id_for_label }}">Address</label>
+                        <div class="input-wrapper">
+                            <i class="bi bi-house input-icon" style="top: 14px; transform: none;"></i>
+                            <textarea name="{{ form.address.html_name }}"
+                                      id="{{ form.address.id_for_label }}"
+                                      class="form-control {% if form.address.errors %}is-invalid{% endif %}"
+                                      placeholder="Enter your full address"
+                                      rows="2"
+                                      style="padding-left: 2.4rem; resize: none;">{{ form.address.value|default:'' }}</textarea>
+                        </div>
+                        {% if form.address.errors %}
+                            <div class="error-text"><i class="bi bi-exclamation-circle"></i>{{ form.address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+                <button type="submit" class="btn-signup">
+                    <i class="bi bi-person-check-fill"></i>
+                    Create Account
+                </button>
+
+                <div class="terms-note">
+                    By registering, you agree to the ward portal's terms of service.
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function togglePw(fieldId, iconId) {
+            const field = document.getElementById(fieldId);
+            const icon = document.getElementById(iconId);
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                field.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+    </script>
+
+</body>
+</html>

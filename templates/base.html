@@ -575,130 +575,88 @@
         });
     </script>
 
-    <!-- Real-time Notifications -->
+    {% if user.is_authenticated %}
     <div id="notificationContainer" style="position: fixed; top: 80px; right: 20px; z-index: 9999; max-width: 400px;"></div>
-
     <script>
-        // WebSocket connection for real-time notifications
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/notifications/`;
-        let notificationSocket;
+        (function () {
+            const wsUrl = (window.location.protocol === "https:" ? "wss:" : "ws:") + "//" + window.location.host + "/ws/notifications/";
+            let socket = null;
+            let retries = 0;
+            const BACKOFF = [1000, 3000, 7000, 15000];
+            let shuttingDown = false;
 
-        function connectWebSocket() {
-            notificationSocket = new WebSocket(wsUrl);
+            function connect() {
+                if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
+                if (retries >= BACKOFF.length) return;
 
-            notificationSocket.onopen = function(e) {
-                console.log('WebSocket connected');
-            };
+                socket = new WebSocket(wsUrl);
 
-            notificationSocket.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                
-                if (data.type === 'notification') {
-                    showNotification(data.notification);
-                    updateNotificationBadge();
-                } else if (data.type === 'unread_count') {
-                    updateBadgeCount(data.count);
-                }
-            };
+                socket.onopen = () => {
+                    retries = 0;
+                };
 
-            notificationSocket.onclose = function(e) {
-                console.log('WebSocket disconnected. Reconnecting...');
-                setTimeout(connectWebSocket, 3000);
-            };
+                socket.onmessage = (e) => {
+                    const data = JSON.parse(e.data);
+                    if (data.type === "notification") showNotification(data.notification);
+                    else if (data.type === "unread_count") updateBadgeCount(data.count);
+                };
 
-            notificationSocket.onerror = function(e) {
-                console.error('WebSocket error:', e);
-            };
-        }
+                socket.onclose = (event) => {
+                    socket = null;
+                    // Stop retrying if unauthorized/forbidden
+                    if ([4401, 4403, 4001].includes(event.code)) return;
+                    if (!shuttingDown && retries < BACKOFF.length) {
+                        const delay = BACKOFF[retries];
+                        retries++;
+                        setTimeout(connect, delay);
+                    }
+                };
 
-        function showNotification(notification) {
-            const container = document.getElementById('notificationContainer');
-            
-            const notifDiv = document.createElement('div');
-            notifDiv.className = 'alert alert-info alert-dismissible fade show shadow-lg';
-            notifDiv.style.cssText = 'animation: slideInRight 0.3s ease-out;';
-            
-            const iconMap = {
-                'complaint_status': 'bi-exclamation-circle',
-                'new_scheme': 'bi-gift',
-                'meeting_announced': 'bi-calendar-event',
-                'complaint_assigned': 'bi-person-check',
-                'complaint_resolved': 'bi-check-circle'
-            };
-            
-            const icon = iconMap[notification.type] || 'bi-bell';
-            
-            notifDiv.innerHTML = `
-                <div class="d-flex align-items-start">
-                    <i class="bi ${icon} fs-4 me-3"></i>
-                    <div class="flex-grow-1">
-                        <h6 class="mb-1 fw-bold">${notification.title}</h6>
-                        <p class="mb-2 small">${notification.message}</p>
-                        ${notification.link ? `<a href="${notification.link}" class="btn btn-sm btn-primary">View Details</a>` : ''}
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-            
-            container.appendChild(notifDiv);
-            
-            // Play notification sound
-            playNotificationSound();
-            
-            // Auto-remove after 10 seconds
-            setTimeout(() => {
-                notifDiv.classList.remove('show');
-                setTimeout(() => notifDiv.remove(), 300);
-            }, 10000);
-        }
-
-        function updateNotificationBadge() {
-            fetch('/notifications/unread-count/')
-                .then(response => response.json())
-                .then(data => updateBadgeCount(data.count));
-        }
-
-        function updateBadgeCount(count) {
-            const badge = document.getElementById('notificationBadge');
-            if (count > 0) {
-                badge.textContent = count > 99 ? '99+' : count;
-                badge.style.display = 'block';
-            } else {
-                badge.style.display = 'none';
+                socket.onerror = () => {
+                    // let onclose handle backoff
+                    if (socket) socket.close();
+                };
             }
-        }
 
-        function playNotificationSound() {
-            // Create a simple beep sound
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.5);
-        }
+            function showNotification(notification) {
+                const container = document.getElementById("notificationContainer");
+                const div = document.createElement("div");
+                div.className = "alert alert-info alert-dismissible fade show shadow-lg";
+                div.style.cssText = "animation: slideInRight 0.3s ease-out;";
+                const icons = {
+                    "complaint_status": "bi-exclamation-circle",
+                    "new_scheme": "bi-gift",
+                    "meeting_announced": "bi-calendar-event",
+                    "complaint_assigned": "bi-person-check",
+                    "complaint_resolved": "bi-check-circle"
+                };
+                const icon = icons[notification.type] || "bi-bell";
+                div.innerHTML = `<div class="d-flex align-items-start"><i class="bi ${icon} fs-4 me-3"></i><div class="flex-grow-1"><h6 class="mb-1 fw-bold">${notification.title}</h6><p class="mb-2 small">${notification.message}</p>${notification.link ? `<a href="${notification.link}" class="btn btn-sm btn-primary">View Details</a>` : ""}</div><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+                container.appendChild(div);
+                setTimeout(() => { div.classList.remove("show"); setTimeout(() => div.remove(), 300); }, 10000);
+            }
 
-        // Notification bell click handler
-        document.getElementById('notificationBell').addEventListener('click', function() {
-            window.location.href = '/notifications/list/';
-        });
+            function updateBadgeCount(count) {
+                const badge = document.getElementById("notificationBadge");
+                if (count > 0) { badge.textContent = count > 99 ? "99+" : count; badge.style.display = "block"; }
+                else badge.style.display = "none";
+            }
 
-        // Connect WebSocket on page load
-        connectWebSocket();
-        
-        // Update badge count on page load
-        updateNotificationBadge();
+            document.getElementById("notificationBell").addEventListener("click", function () {
+                window.location.href = "/notifications/list/";
+            });
+
+            fetch("/notifications/unread-count/").then(r => r.json()).then(d => updateBadgeCount(d.count)).catch(() => { });
+
+            window.addEventListener("beforeunload", function () {
+                shuttingDown = true;
+                if (socket) socket.close();
+            });
+
+            connect();
+        })();
     </script>
+    {% endif %}
 
     <style>
         @keyframes slideInRight {

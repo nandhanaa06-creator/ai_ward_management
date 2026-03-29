@@ -298,7 +298,9 @@ def get_iot_telemetry(admin_user):
     # Threshold check (> 85%)
     # We assign to a default ward or the first ward for simulation purposes
     target_ward = Ward.objects.first()
-    
+    if not target_ward:
+        return telemetry
+
     if water_level > 85:
         telemetry['water']['status'] = 'CRITICAL'
         telemetry['water']['color'] = 'danger'
