@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Count, Avg, Q
@@ -533,6 +533,28 @@ def signup(request):
     else:
         form = CitizenRegistrationForm()
     return render(request, 'accounts/signup.html', {'form': form})
+
+
+def user_login(request):
+    """
+    Custom login view with proper error message handling.
+    """
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            return redirect('dashboard')
+        else:
+            messages.error(request, 'Invalid username or password')
+    
+    return render(request, 'accounts/login.html')
 
 from django.contrib import messages
 
