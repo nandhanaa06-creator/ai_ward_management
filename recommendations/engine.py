@@ -12,44 +12,58 @@ class SchemeRecommendationEngine:
         reasons = []
         max_score = 100
         
+        if not hasattr(user, 'profile'):
+            return 0, "✗ No citizen profile found"
+            
+        profile = user.profile
+        
+        # Calculate age from date of birth
+        age = None
+        if profile.date_of_birth:
+            today = datetime.now().date()
+            age = today.year - profile.date_of_birth.year - ((today.month, today.day) < (profile.date_of_birth.month, profile.date_of_birth.day))
+        
         # Age eligibility (30 points)
-        if user.age:
-            if scheme.min_age <= user.age <= scheme.max_age:
+        if age is not None:
+            if scheme.min_age <= age <= scheme.max_age:
                 score += 30
-                reasons.append(f"✓ Age {user.age} matches requirement ({scheme.min_age}-{scheme.max_age} years)")
+                reasons.append(f"✓ Age {age} matches requirement ({scheme.min_age}-{scheme.max_age} years)")
             else:
-                reasons.append(f"✗ Age {user.age} outside range ({scheme.min_age}-{scheme.max_age} years)")
+                reasons.append(f"✗ Age {age} outside range ({scheme.min_age}-{scheme.max_age} years)")
+        else:
+            reasons.append("✗ No date of birth specified in profile")
         
         # Income eligibility (30 points)
-        if user.annual_income:
-            if user.annual_income <= scheme.max_income:
+        if profile.annual_income is not None:
+            if profile.annual_income <= scheme.max_income:
                 score += 30
-                income_gap = scheme.max_income - user.annual_income
-                reasons.append(f"✓ Income ₹{user.annual_income:,.0f} qualifies (limit: ₹{scheme.max_income:,.0f})")
+                reasons.append(f"✓ Income ₹{profile.annual_income:,.0f} qualifies (limit: ₹{scheme.max_income:,.0f})")
             else:
-                reasons.append(f"✗ Income ₹{user.annual_income:,.0f} exceeds limit (₹{scheme.max_income:,.0f})")
+                reasons.append(f"✗ Income ₹{profile.annual_income:,.0f} exceeds limit (₹{scheme.max_income:,.0f})")
+        else:
+            reasons.append("✗ No annual income specified in profile")
         
         # Gender eligibility (20 points)
-        if scheme.gender_target == 'A' or scheme.gender_target == user.gender:
+        if scheme.gender_target == 'A' or scheme.gender_target == profile.gender:
             score += 20
             if scheme.gender_target == 'A':
                 reasons.append("✓ Open to all genders")
             else:
-                reasons.append(f"✓ Gender matches ({user.get_gender_display()})")
+                reasons.append(f"✓ Gender matches ({profile.get_gender_display() if hasattr(profile, 'get_gender_display') else profile.gender})")
         else:
-            reasons.append(f"✗ Gender mismatch (scheme for {scheme.get_gender_target_display()})")
+            reasons.append(f"✗ Gender mismatch (scheme for {scheme.get_gender_target_display() if hasattr(scheme, 'get_gender_target_display') else scheme.gender_target})")
         
         # Occupation eligibility (20 points)
         occupation_targets = scheme.get_occupation_targets()
         if not occupation_targets:  # Open to all
             score += 20
             reasons.append("✓ Open to all occupations")
-        elif user.occupation and user.occupation.lower() in occupation_targets:
+        elif profile.occupation and profile.occupation.lower() in occupation_targets:
             score += 20
-            reasons.append(f"✓ Occupation '{user.occupation}' matches")
+            reasons.append(f"✓ Occupation '{profile.occupation}' matches")
         else:
-            if user.occupation:
-                reasons.append(f"✗ Occupation '{user.occupation}' not targeted")
+            if profile.occupation:
+                reasons.append(f"✗ Occupation '{profile.occupation}' not targeted")
             else:
                 reasons.append("✗ No occupation specified in profile")
         

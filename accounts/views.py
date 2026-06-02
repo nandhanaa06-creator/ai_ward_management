@@ -233,6 +233,7 @@ def manage_workers(request):
     from .models import User, Ward
     
     if request.method == 'POST':
+        worker_id = request.POST.get('worker_id')
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
@@ -240,21 +241,55 @@ def manage_workers(request):
         last_name = request.POST.get('last_name')
         ward_id = request.POST.get('ward')
         
-        if User.objects.filter(username=username).exists():
-            messages.error(request, f"Error: Username '{username}' is already taken.")
-        else:
-            ward = Ward.objects.get(id=ward_id) if ward_id else None
-            user = User.objects.create_user(
-                username=username,
-                email=email,
-                password=password,
-                first_name=first_name,
-                last_name=last_name,
-                role='field_worker',
-                ward=ward
-            )
-            messages.success(request, f"Successfully recruited {user.get_full_name() or user.username} as an Authorized Field Worker.")
+        ward = Ward.objects.get(id=ward_id) if ward_id else None
+
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Error: Invalid email address provided.")
             return redirect('manage_workers')
+
+        if worker_id:
+            # Edit existing worker
+            try:
+                user = User.objects.get(id=worker_id, role='field_worker')
+                if username != user.username and User.objects.filter(username=username).exists():
+                    messages.error(request, f"Error: Username '{username}' is already taken.")
+                else:
+                    user.username = username
+                    user.email = email
+                    user.first_name = first_name
+                    user.last_name = last_name
+                    user.ward = ward
+                    
+                    if password:
+                        user.set_password(password)
+                        
+                    user.save()
+                    messages.success(request, f"Successfully updated details for {user.get_full_name() or user.username}.")
+            except User.DoesNotExist:
+                messages.error(request, "Error: Worker not found.")
+                
+            return redirect('manage_workers')
+        else:
+            # Recruit new worker
+            if User.objects.filter(username=username).exists():
+                messages.error(request, f"Error: Username '{username}' is already taken.")
+            else:
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password,
+                    first_name=first_name,
+                    last_name=last_name,
+                    role='field_worker',
+                    ward=ward
+                )
+                messages.success(request, f"Successfully recruited {user.get_full_name() or user.username} as an Authorized Field Worker.")
+                return redirect('manage_workers')
 
     # Fetch all workers with active task counts
     workers = User.objects.filter(role='field_worker').annotate(
@@ -594,6 +629,22 @@ def manage_wards(request):
     }
     return render(request, 'accounts/manage_wards.html', context)
 
+
+@login_required
+def delete_ward(request, ward_id):
+    if not (request.user.role == 'panchayath_admin' or request.user.is_superuser):
+        messages.error(request, 'Access denied. Administrator privileges required.')
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        try:
+            ward = Ward.objects.get(id=ward_id)
+            ward.delete()
+            messages.success(request, f'✅ Ward #{ward.ward_number} - "{ward.ward_name}" has been successfully deleted.')
+        except Ward.DoesNotExist:
+            messages.error(request, 'Ward not found.')
+            
+    return redirect('manage_wards')
 
 
 @login_required

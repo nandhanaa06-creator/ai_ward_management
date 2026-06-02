@@ -129,6 +129,16 @@
                     </td>
                     <td><span class="text-muted small">{{ worker.date_joined|date:"M d, Y" }}</span></td>
                     <td class="text-end pe-4">
+                        <button class="btn btn-primary btn-sm rounded-pill px-3 border shadow-none me-2" 
+                                data-bs-toggle="modal" data-bs-target="#editWorkerModal"
+                                data-id="{{ worker.id }}"
+                                data-fname="{{ worker.first_name }}"
+                                data-lname="{{ worker.last_name }}"
+                                data-username="{{ worker.username }}"
+                                data-email="{{ worker.email }}"
+                                data-ward="{{ worker.ward.id|default:'' }}">
+                            Edit
+                        </button>
                         <button class="btn btn-light btn-sm rounded-pill px-3 border shadow-none">View History</button>
                     </td>
                 </tr>
@@ -171,7 +181,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-bold text-muted">Email Address</label>
-                            <input type="email" name="email" class="form-control form-control-glass" placeholder="worker@example.com" required>
+                            <input type="email" name="email" class="form-control form-control-glass" placeholder="worker@example.com" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$" title="Please enter a valid email address (e.g. worker@example.com)" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-bold text-muted">Initial Password</label>
@@ -196,4 +206,79 @@
         </div>
     </div>
 </div>
+<!-- Edit Worker Modal -->
+<div class="modal fade" id="editWorkerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-0">
+            <div class="modal-header border-bottom-0 pb-0 px-4 pt-4">
+                <h5 class="fw-bold">Edit Worker</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="worker_id" value="">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">First Name</label>
+                            <input type="text" name="first_name" class="form-control form-control-glass" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Last Name</label>
+                            <input type="text" name="last_name" class="form-control form-control-glass" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Username</label>
+                            <input type="text" name="username" class="form-control form-control-glass" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Email Address</label>
+                            <input type="email" name="email" class="form-control form-control-glass" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$" title="Please enter a valid email address (e.g. worker@example.com)" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">New Password (Optional)</label>
+                            <input type="password" name="password" class="form-control form-control-glass" placeholder="Leave blank to keep current">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Assign to Ward</label>
+                            <select name="ward" class="form-select form-control-glass">
+                                <option value="">Global / Float</option>
+                                {% for ward in wards %}
+                                <option value="{{ ward.id }}">{{ ward }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Update Worker</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var editModal = document.getElementById('editWorkerModal');
+        if (editModal) {
+            editModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                
+                editModal.querySelector('input[name="worker_id"]').value = button.getAttribute('data-id');
+                editModal.querySelector('input[name="first_name"]').value = button.getAttribute('data-fname');
+                editModal.querySelector('input[name="last_name"]').value = button.getAttribute('data-lname');
+                editModal.querySelector('input[name="username"]').value = button.getAttribute('data-username');
+                editModal.querySelector('input[name="email"]').value = button.getAttribute('data-email');
+                
+                var ward = button.getAttribute('data-ward');
+                var wardSelect = editModal.querySelector('select[name="ward"]');
+                if (wardSelect) {
+                    wardSelect.value = ward || "";
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
