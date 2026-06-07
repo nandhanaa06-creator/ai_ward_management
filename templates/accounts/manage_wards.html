@@ -134,8 +134,14 @@
                     </td>
                     <td class="text-center">
                         <div class="d-flex justify-content-center gap-2">
-                            <a href="#" class="action-btn btn-edit" title="Edit Ward"><i
-                                    class="bi bi-pencil-fill"></i></a>
+                            <button type="button" class="action-btn btn-edit" title="Edit Ward"
+                                data-bs-toggle="modal" data-bs-target="#editWardModal"
+                                data-ward-id="{{ ward.id }}"
+                                data-ward-number="{{ ward.ward_number }}"
+                                data-ward-name="{{ ward.ward_name }}"
+                                data-ward-description="{{ ward.description|default_if_none:'' }}">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
                             <form action="{% url 'delete_ward' ward.id %}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete Ward #{{ ward.ward_number }} ({{ ward.ward_name }})?');">
                                 {% csrf_token %}
                                 <button type="submit" class="action-btn btn-delete" title="Delete Ward">
@@ -205,6 +211,48 @@
     </div>
 </div>
 
+<!-- Edit Ward Modal -->
+<div class="modal fade" id="editWardModal" tabindex="-1" aria-labelledby="editWardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background: var(--bg-light);">
+            <div class="modal-header border-bottom-0 pb-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" id="editWardModalLabel">Edit Ward</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <p class="text-secondary small mb-4">Update the details for this ward.</p>
+                <form action="" method="post" id="editWardForm">
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small text-secondary">Ward No.</label>
+                            <input type="number" name="ward_number" id="editWardNumber" class="form-control" required min="1">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold small text-secondary">Ward Name</label>
+                            <input type="text" name="ward_name" id="editWardName" class="form-control" required maxlength="100">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small text-secondary">Description (Optional)</label>
+                        <textarea name="description" id="editWardDescription" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0 px-4 pb-4 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-4 fw-medium" data-bs-dismiss="modal"
+                    style="border: 1px solid #e2e8f0;">Cancel</button>
+                <button type="submit" form="editWardForm"
+                    class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium d-flex align-items-center">
+                    <i class="bi bi-check-circle me-2"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Success Toast Container -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;">
     {% if messages %}
@@ -261,6 +309,30 @@
                     const textContent = row.textContent.toLowerCase();
                     row.style.display = textContent.includes(term) ? '' : 'none';
                 });
+            });
+        }
+
+        // Edit Ward Modal — populate fields from the clicked button's data attributes
+        const editModal = document.getElementById('editWardModal');
+        if (editModal) {
+            editModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const wardId = button.getAttribute('data-ward-id');
+                const wardNumber = button.getAttribute('data-ward-number');
+                const wardName = button.getAttribute('data-ward-name');
+                const wardDescription = button.getAttribute('data-ward-description');
+
+                // Set form action to the edit URL for this specific ward
+                const form = document.getElementById('editWardForm');
+                form.action = '/accounts/manage-wards/' + wardId + '/edit/';
+
+                // Pre-fill the form fields
+                document.getElementById('editWardNumber').value = wardNumber;
+                document.getElementById('editWardName').value = wardName;
+                document.getElementById('editWardDescription').value = wardDescription;
+
+                // Update modal title to show which ward is being edited
+                document.getElementById('editWardModalLabel').textContent = 'Edit Ward #' + wardNumber;
             });
         }
     });

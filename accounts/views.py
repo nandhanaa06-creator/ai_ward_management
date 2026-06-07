@@ -631,6 +631,105 @@ def manage_wards(request):
 
 
 @login_required
+def edit_ward(request, ward_id):
+    """
+    Edit an existing ward's details.
+    Restricted to panchayath_admin or superuser.
+    """
+    if not (request.user.role == 'panchayath_admin' or request.user.is_superuser):
+        messages.error(request, 'Access denied. Administrator privileges required.')
+        return redirect('dashboard')
+
+    try:
+        ward = Ward.objects.get(id=ward_id)
+    except Ward.DoesNotExist:
+        messages.error(request, 'Ward not found.')
+        return redirect('manage_wards')
+
+    if request.method == 'POST':
+        form = WardForm(request.POST, instance=ward)
+        if form.is_valid():
+            updated_ward = form.save()
+            messages.success(request, f'✅ Ward {updated_ward.ward_number} - "{updated_ward.ward_name}" has been successfully updated!')
+        else:
+            error_messages = '; '.join(
+                f'{field}: {", ".join(errs)}' for field, errs in form.errors.items()
+            )
+            messages.error(request, f'Failed to update ward. {error_messages}')
+
+    return redirect('manage_wards')
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'panchayath_admin' or u.is_superuser)
+def worker_history_api(request, worker_id):
+    """
+    JSON API endpoint returning a worker's profile, task summary,
+    assigned complaints, and recent status update activity.
+    """
+    from django.http import JsonResponse
+    from complaints.models import ComplaintStatusHistory
+
+    try:
+        worker = User.objects.get(id=worker_id, role='field_worker')
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Worker not found'}, status=404)
+
+    # All complaints ever assigned to this worker
+    tasks = Complaint.objects.filter(assigned_worker=worker).order_by('-created_at')
+
+    # Summary counts
+    total = tasks.count()
+    resolved = tasks.filter(status='resolved').count()
+    in_progress = tasks.filter(status='in_progress').count()
+    pending = tasks.filter(status__in=['pending', 'assigned', 'urgent_review']).count()
+
+    # Serialize task list
+    task_list = []
+    for t in tasks:
+        task_list.append({
+            'id': t.id,
+            'title': t.title,
+            'category': t.category or '',
+            'priority': t.priority,
+            'status': t.status,
+            'status_display': t.get_status_display(),
+            'created_at': t.created_at.strftime('%b %d, %Y'),
+        })
+
+    # Recent status updates made BY this worker (last 20)
+    status_updates = ComplaintStatusHistory.objects.filter(
+        actor=worker
+    ).select_related('complaint').order_by('-created_at')[:20]
+
+    updates_list = []
+    for u in status_updates:
+        updates_list.append({
+            'complaint_id': u.complaint_id,
+            'new_status': u.get_new_status_display(),
+            'description': u.description or '',
+            'created_at': u.created_at.strftime('%b %d, %Y %H:%M'),
+        })
+
+    return JsonResponse({
+        'worker': {
+            'id': worker.id,
+            'name': worker.get_full_name() or worker.username,
+            'email': worker.email,
+            'ward': str(worker.ward) if worker.ward else '',
+            'joined': worker.date_joined.strftime('%b %d, %Y'),
+        },
+        'summary': {
+            'total': total,
+            'resolved': resolved,
+            'in_progress': in_progress,
+            'pending': pending,
+        },
+        'tasks': task_list,
+        'status_updates': updates_list,
+    })
+
+@login_required
 def delete_ward(request, ward_id):
     if not (request.user.role == 'panchayath_admin' or request.user.is_superuser):
         messages.error(request, 'Access denied. Administrator privileges required.')
