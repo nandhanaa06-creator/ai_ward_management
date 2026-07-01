@@ -17,9 +17,7 @@ def schedule_meeting(request):
     if request.method == 'POST':
         form = MeetingForm(request.POST, request.FILES)
         if form.is_valid():
-            meeting = form.save(commit=False)
-            meeting.ward = request.user.ward
-            meeting.save()
+            meeting = form.save()
             
             # --- Trigger Notifications for all citizens in the ward ---
             from accounts.models import User

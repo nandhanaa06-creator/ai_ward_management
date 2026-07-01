@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+    .notification-card {
+        border-left: 4px solid transparent;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    .notification-card:hover {
+        background-color: var(--sidebar-hover-bg);
+        transform: translateX(4px);
+    }
+
+    .notification-card.unread {
+        border-left-color: var(--brand-primary);
+        background-color: #f8fafc;
+    }
+
+    .notification-card.read {
+        border-left-color: #cbd5e1;
+    }
+    
+    .notification-card .icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .icon-complaint_status { background-color: #fff3cd; color: #856404; }
+    .icon-new_scheme { background-color: #d1e7dd; color: #0f5132; }
+    .icon-meeting_announced { background-color: #cff4fc; color: #055160; }
+    .icon-complaint_assigned { background-color: #e2e3e5; color: #383d41; }
+    .icon-complaint_resolved { background-color: #d1e7dd; color: #0f5132; }
+    .icon-default { background-color: #e2e8f0; color: #475569; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0 fw-bold">Notifications</h4>
+        {% if notifications %}
+        <button id="markAllReadBtn" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-check2-all me-1"></i> Mark all as read
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 col-xl-6">
+            {% if notifications %}
+                <div class="card p-0 overflow-hidden">
+                    <div class="list-group list-group-flush">
+                        {% for notification in notifications %}
+                            <a href="{{ notification.link|default:'#' }}" class="list-group-item list-group-item-action notification-card p-4 {% if not notification.is_read %}unread{% else %}read{% endif %}" data-id="{{ notification.id }}">
+                                <div class="d-flex gap-3">
+                                    <div class="icon-wrapper {% if notification.notification_type == 'complaint_status' %}icon-complaint_status{% elif notification.notification_type == 'new_scheme' %}icon-new_scheme{% elif notification.notification_type == 'meeting_announced' %}icon-meeting_announced{% elif notification.notification_type == 'complaint_assigned' %}icon-complaint_assigned{% elif notification.notification_type == 'complaint_resolved' %}icon-complaint_resolved{% else %}icon-default{% endif %}">
+                                        {% if notification.notification_type == 'complaint_status' %}
+                                            <i class="bi bi-exclamation-circle fs-5"></i>
+                                        {% elif notification.notification_type == 'new_scheme' %}
+                                            <i class="bi bi-gift fs-5"></i>
+                                        {% elif notification.notification_type == 'meeting_announced' %}
+                                            <i class="bi bi-calendar-event fs-5"></i>
+                                        {% elif notification.notification_type == 'complaint_assigned' %}
+                                            <i class="bi bi-person-check fs-5"></i>
+                                        {% elif notification.notification_type == 'complaint_resolved' %}
+                                            <i class="bi bi-check-circle fs-5"></i>
+                                        {% else %}
+                                            <i class="bi bi-bell fs-5"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <h6 class="mb-0 fw-bold text-dark">{{ notification.title }}</h6>
+                                            <small class="text-muted text-nowrap ms-2" title="{{ notification.created_at|date:'M d, Y h:i A' }}">
+                                                {{ notification.created_at|timesince }} ago
+                                            </small>
+                                        </div>
+                                        <p class="mb-0 text-secondary small">{{ notification.message }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="card p-5 text-center">
+                    <div class="display-1 text-muted mb-3 opacity-25">
+                        <i class="bi bi-bell-slash"></i>
+                    </div>
+                    <h5 class="text-muted fw-bold mb-2">No notifications available</h5>
+                    <p class="text-secondary small">You're all caught up! New notifications will appear here.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const markAllReadBtn = document.getElementById('markAllReadBtn');
+    
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function() {
+            fetch("{% url 'mark_all_read' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelectorAll('.notification-card.unread').forEach(el => {
+                        el.classList.remove('unread');
+                        el.classList.add('read');
+                    });
+                    
+                    const badge = document.getElementById('notificationBadge');
+                    if (badge) {
+                        badge.style.display = 'none';
+                        badge.textContent = '0';
+                    }
+                }
+            });
+        });
+    }
+
+    document.querySelectorAll('.notification-card.unread').forEach(card => {
+        card.addEventListener('click', function(e) {
+            const notifId = this.getAttribute('data-id');
+            if (notifId) {
+                fetch(`/notifications/mark-read/${notifId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json',
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

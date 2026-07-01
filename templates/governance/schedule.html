@@ -23,6 +23,15 @@
                         {% csrf_token %}
                         <div class="row g-3 mb-4">
                             <div class="col-12">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Ward</label>
+                                {{ form.ward }}
+                                {% if form.ward.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.ward.errors|join:", " }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Meeting Title</label>
                                 {{ form.title }}
                             </div>
